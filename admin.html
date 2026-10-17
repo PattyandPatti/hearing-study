@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>研究者管理页</title>
+<title>听力测试数据管理</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
@@ -23,7 +23,7 @@
   #pwdBar input { flex:1; padding:10px 14px; border-radius:8px; border:1px solid #475569;
                   background:#0f172a; color:#fff; font-family:inherit; font-size:14px; }
   #tableWrap { overflow-x:auto; background:#1e293b; border-radius:12px; padding:8px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap; }
   th { background:#0f172a; padding:10px; text-align:left; color:#94a3b8; font-weight:600; position:sticky; top:0; }
   td { padding:10px; border-bottom:1px solid #1e293b; }
   tr:hover td { background:#0f172a; }
@@ -74,7 +74,6 @@ function loadData() {
 
 function renderStats() {
   const total = currentData.length;
-  const withReport = currentData.filter(r => r.report).length;
   const saved = currentData.filter(r => r.savedByUser).length;
   const pretestDone = currentData.filter(r => r.pretestCompleted).length;
   const codes = new Set(currentData.map(r => r.researchCode).filter(c => c));
@@ -82,29 +81,51 @@ function renderStats() {
     `<div class="stat"><div class="k">总记录</div><div class="v">${total}</div></div>
      <div class="stat"><div class="k">独立编码</div><div class="v">${codes.size}</div></div>
      <div class="stat"><div class="k">前测完成</div><div class="v">${pretestDone}</div></div>
-     <div class="stat"><div class="k">已完成报告</div><div class="v">${withReport}</div></div>
      <div class="stat"><div class="k">用户已保存</div><div class="v">${saved}</div></div>`;
 }
 
 function renderTable() {
   if (!currentData.length) { document.getElementById('tableWrap').innerHTML = '<div class="empty">暂无数据</div>'; return; }
+  
   let html = `<table><thead><tr>
-    <th>研究编码</th><th>提交时间</th><th>前测</th><th>保存状态</th><th>听力年龄</th><th>实际年龄</th><th>最高频率</th><th>IP</th>
+    <th>研究编码</th><th>提交时间</th><th>实际年龄</th><th>最高频率</th><th>听力年龄</th>
+    <th>综合评分</th><th>听觉范围</th><th>音高辨识</th><th>噪声耐受</th><th>敏感度</th><th>使用习惯</th>
+    <th>日剂量比</th><th>噪声偏移</th><th>年龄偏移</th><th>预测偏移</th><th>存活率</th>
+    <th>前测</th><th>保存</th>
   </tr></thead><tbody>`;
+
   currentData.slice().reverse().forEach(r => {
+    const rep = r.report || {};
+    const r5 = rep.radar5 || {}; // 读取我们新加的五维数据
+    const split = r.causeSplit || {};
+    
     const savedText = r.savedByUser ? '✓ 已保存' : '未保存';
     const savedClass = r.savedByUser ? 'saved' : 'unsaved';
     const pretestText = r.pretestCompleted ? '✓ 已完成' : '未完成';
     const pretestClass = r.pretestCompleted ? 'saved' : 'unsaved';
+
     html += `<tr>
       <td class="code-cell">${r.researchCode || '—'}</td>
       <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '—'}</td>
-      <td><span class="tag ${pretestClass}">${pretestText}</span></td>
-      <td><span class="tag ${savedClass}">${savedText}</span></td>
-      <td>${r.displayHearingAge || '—'}</td>
       <td>${r.userAge || '—'}</td>
       <td>${r.maxFreq ? r.maxFreq + ' Hz' : '—'}</td>
-      <td style="font-size:10px;color:#64748b;">${r.ip || '—'}</td>
+      <td style="color:#4ade80;font-weight:bold;">${r.displayHearingAge || '—'}</td>
+      
+      <!-- 新数据列 -->
+      <td>${rep.overall != null ? rep.overall : '—'}</td>
+      <td>${r5.hearingRange != null ? r5.hearingRange : '—'}</td>
+      <td>${r5.noiseTolerance != null ? r5.noiseTolerance : '—'}</td>
+      <td>${r5.volumeCtrl != null ? r5.volumeCtrl : '—'}</td>
+      <td>${r5.timeCtrl != null ? r5.timeCtrl : '—'}</td>
+      <td>${r5.sceneSafe != null ? r5.sceneSafe : '—'}</td>
+      <td>${rep.doseRatio != null ? rep.doseRatio + '%' : '—'}</td>
+      <td>${split.avgNoiseOffset != null ? split.avgNoiseOffset : '—'}</td>
+      <td>${split.avgAgeOffset != null ? split.avgAgeOffset : '—'}</td>
+      <td>${rep.predictedOffset != null ? rep.predictedOffset : '—'}</td>
+      <td>${rep.survivalRate != null ? rep.survivalRate + '%' : '—'}</td>
+      
+      <td><span class="tag ${pretestClass}">${pretestText}</span></td>
+      <td><span class="tag ${savedClass}">${savedText}</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -119,15 +140,44 @@ function exportJSON() {
 
 function exportCSV() {
   if (!currentData.length) return alert('暂无数据');
-  const rows = [['研究编码','提交时间','前测完成','保存状态','听力年龄','实际年龄','最高频率','IP']];
+  const rows = [[
+    '研究编码','提交时间','实际年龄','最高频率','听力年龄','综合评分',
+    '听觉范围','音高辨识','噪声耐受','敏感度','使用习惯',
+    '日剂量比(%)','噪声偏移(dB)','年龄偏移(dB)','预测偏移(dB)','存活率(%)',
+    '前测完成','保存状态'
+  ]];
+
   currentData.forEach(r => {
-    rows.push([r.researchCode || '', r.timestamp || '', r.pretestCompleted ? '已完成' : '未完成',
-      r.savedByUser ? '已保存' : '未保存', r.displayHearingAge || '', r.userAge || '', r.maxFreq || '', r.ip || '']);
+    const rep = r.report || {};
+    const r5 = rep.radar5 || {};
+    const split = r.causeSplit || {};
+    rows.push([
+      r.researchCode || '', 
+      r.timestamp || '', 
+      r.userAge || '', 
+      r.maxFreq || '', 
+      r.displayHearingAge || '', 
+      rep.overall != null ? rep.overall : '',
+      r5.hearingRange != null ? r5.hearingRange : '',
+      r5.noiseTolerance != null ? r5.noiseTolerance : '',
+      r5.volumeCtrl != null ? r5.volumeCtrl : '',
+      r5.timeCtrl != null ? r5.timeCtrl : '',
+      r5.sceneSafe != null ? r5.sceneSafe : '',
+      rep.doseRatio != null ? rep.doseRatio : '',
+      split.avgNoiseOffset != null ? split.avgNoiseOffset : '',
+      split.avgAgeOffset != null ? split.avgAgeOffset : '',
+      rep.predictedOffset != null ? rep.predictedOffset : '',
+      rep.survivalRate != null ? rep.survivalRate : '',
+      r.pretestCompleted ? '已完成' : '未完成',
+      r.savedByUser ? '已保存' : '未保存'
+    ]);
   });
+
   const csv = rows.map(row => row.map(cell => {
     const s = String(cell == null ? '' : cell);
     return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
   }).join(',')).join('\n');
+  
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.csv');
 }
