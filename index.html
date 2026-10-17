@@ -1764,7 +1764,32 @@
 
       window.__reportParams = { age: state.age, ageStart: state.ageStart, volume: state.volume, session: state.session, daily: state.daily, scenes: Array.from(state.scenes), type: state.type };
 
-      updateRecordOnServer({ report: { scores: scores, overall: overall, habitRisk: habitRisk.label, hearingRisk: hearingRisk.level, params: window.__reportParams } });
+            // ================= 提取需要存入后台的数据 =================
+      var radar5Data = calcRadar5Scores(); // 获取五维得分
+      var currentDb = 85 + (state.volume - 60) * 0.5;
+      var leq8h = currentDb + 10 * Math.log10(state.daily / 8);
+      var doseRatio = Math.pow(2, (leq8h - 85) / 3) * 100; // 日剂量比
+      var exposureYears = Math.max(1, state.age - state.ageStart);
+      var exposureDays = exposureYears * 365;
+      var survival = estimateSurvival(currentDb, state.daily, exposureDays); // 毛细胞存活率
+      var causeSplit = window.__causeSplit || { avgAgeOffset: 0, avgNoiseOffset: 0 };
+
+      updateRecordOnServer({
+        report: {
+          scores: scores,
+          overall: overall,
+          habitRisk: habitRisk.label,
+          hearingRisk: hearingRisk.level,
+          params: window.__reportParams,
+          // 新增提交的维度：
+          radar5: radar5Data, 
+          doseRatio: Math.round(doseRatio),
+          noiseOffset: causeSplit.avgNoiseOffset,
+          ageOffset: causeSplit.avgAgeOffset,
+          survivalRate: survival.toFixed(1),
+          predictedOffset: causeSplit.avgNoiseOffset // 模型预测的听阈偏移量（等同于噪声所致偏移）
+        }
+      });
 
       reportForm.classList.add('hidden'); reportResult.classList.remove('hidden');
       var finishCard = document.getElementById('finishCard'); if (finishCard) finishCard.style.display = 'block';
