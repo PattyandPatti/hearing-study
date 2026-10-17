@@ -2,142 +2,2444 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>研究者管理页</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>听力健康工具套件</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
-         background:#0b1120; color:#e2e8f0; padding:20px; }
-  h1 { font-size:20px; margin-bottom:6px; color:#60a5fa; }
-  .subtitle { font-size:13px; color:#94a3b8; margin-bottom:20px; }
-  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
-  .stat { background:#1e293b; padding:12px 20px; border-radius:10px; }
-  .stat .k { font-size:11px; color:#94a3b8; }
-  .stat .v { font-size:24px; font-weight:700; color:#4ade80; margin-top:4px; }
-  .toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-  .btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer;
-         font-size:13px; font-family:inherit; font-weight:600; }
-  .btn.primary { background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; }
-  .btn.secondary { background:#334155; color:#cbd5e1; }
+  body { font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background:#0b1120; color:#e2e8f0; min-height:100vh; }
+  .app { max-width:900px; margin:0 auto; padding:0 16px 60px; }
+  #videoWrap { width:100%; margin:16px 0; border-radius:12px; overflow:hidden; background:#000; }
+  #videoWrap video { width:100%; display:block; }
+  #videoWrap.hidden { display:none; }
+  .tabs { display:flex; gap:6px; margin:16px 0; background:#0f172a; padding:6px;
+          border-radius:14px; border:1px solid #1e293b; overflow-x:auto; }
+  .tab-btn { flex:1; min-width:120px; padding:12px 10px; border-radius:10px;
+             border:none; background:transparent; color:#94a3b8; font-size:13px;
+             font-weight:600; cursor:pointer; font-family:inherit;
+             transition:.15s; white-space:nowrap; }
+  .tab-btn:hover { background:#1e293b; color:#cbd5e1; }
+  .tab-btn.active { background:linear-gradient(135deg,#2563eb,#7c3aed);
+                    color:#fff; box-shadow:0 4px 12px rgba(37,99,235,.3); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  .card { background:#1e293b; border-radius:16px; padding:20px;
+          margin-bottom:16px; border:1px solid #334155; }
+  h1 { font-size:20px; margin-bottom:6px; color:#f1f5f9; }
+  h2 { font-size:17px; margin:0 0 12px; color:#60a5fa; }
+  h3 { font-size:15px; margin:0 0 10px; color:#93c5fd; }
+  .subtitle { font-size:13px; color:#94a3b8; margin-bottom:20px; line-height:1.6; }
+  .btn { display:inline-block; padding:13px 26px; border-radius:12px; border:none;
+         background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff;
+         font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;
+         transition:.15s; }
   .btn:hover { opacity:.9; }
-  #pwdBar { background:#1e293b; padding:16px; border-radius:12px; margin-bottom:20px; display:flex; gap:10px; }
-  #pwdBar input { flex:1; padding:10px 14px; border-radius:8px; border:1px solid #475569;
-                  background:#0f172a; color:#fff; font-family:inherit; font-size:14px; }
-  #tableWrap { overflow-x:auto; background:#1e293b; border-radius:12px; padding:8px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th { background:#0f172a; padding:10px; text-align:left; color:#94a3b8; font-weight:600; position:sticky; top:0; }
-  td { padding:10px; border-bottom:1px solid #1e293b; }
-  tr:hover td { background:#0f172a; }
-  .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; }
-  .tag.safe { background:#065f46; color:#6ee7b7; }
-  .tag.mid { background:#854d0e; color:#fcd34d; }
-  .tag.bad { background:#7f1d1d; color:#fca5a5; }
-  .tag.saved { background:#1e3a5f; color:#93c5fd; }
-  .tag.unsaved { background:#334155; color:#94a3b8; }
-  .empty { text-align:center; padding:40px; color:#64748b; }
-  .code-cell { font-family:Consolas, monospace; font-weight:700; color:#60a5fa; letter-spacing:2px; }
+  .btn.secondary { background:#334155; }
+  .btn:disabled { opacity:.6; cursor:not-allowed; }
+  .btn.success { background:linear-gradient(135deg,#059669,#10b981); }
+  .hero { text-align:center; padding:28px 20px; }
+  .hero p { color:#94a3b8; font-size:13px; line-height:1.8; margin-bottom:16px; }
+  .progress-bar { height:6px; background:#1e293b; border-radius:3px;
+                  overflow:hidden; margin-bottom:20px; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,#3b82f6,#7c3aed);
+                   width:0%; transition:width .3s ease; }
+  .freq-display { text-align:center; padding:24px 20px; }
+  .freq-display .num { font-size:44px; font-weight:800; color:#60a5fa; letter-spacing:2px; }
+  .freq-display .unit { font-size:18px; color:#94a3b8; }
+  .freq-display .hint { font-size:13px; color:#64748b; margin-top:10px; }
+  .btn-row { display:flex; gap:12px; margin-top:20px; }
+  .btn-row .btn { flex:1; }
+  .btn-row .btn.yes { background:linear-gradient(135deg,#059669,#10b981); }
+  .btn-row .btn.no  { background:linear-gradient(135deg,#b91c1c,#ef4444); }
+  .chart-wrap { position:relative; width:100%; margin:16px 0;
+                background:#0f172a; border-radius:12px; padding:8px; }
+  #chartCanvas { display:block; width:100%; }
+  .age-result { text-align:center; padding:16px 12px 8px; }
+  .age-result .label { font-size:13px; color:#94a3b8; margin-bottom:6px; }
+  .age-result .big { font-size:40px; font-weight:800; color:#4ade80; line-height:1.1; }
+  .age-result .big span { font-size:18px; color:#94a3b8; }
+  .age-result .diff { font-size:14px; margin-top:6px; }
+  .age-result .diff.older { color:#f87171; }
+  .age-result .diff.same { color:#94a3b8; }
+  .freq-list { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:14px 0; }
+  .freq-chip { display:inline-flex; flex-direction:column; align-items:center;
+               padding:7px 10px; border-radius:9px; font-size:11px; font-weight:600; min-width:66px; }
+  .freq-chip .f { font-size:12px; }
+  .freq-chip .s { font-size:10px; font-weight:400; margin-top:2px; opacity:.85; }
+  .freq-chip.yes { background:#065f46; color:#6ee7b7; }
+  .freq-chip.no  { background:#7f1d1d; color:#fca5a5; }
+  details.basis { margin-top:14px; background:#0f172a; border-radius:12px;
+                  border:1px solid #1e293b; padding:4px 14px; }
+  details.basis summary { cursor:pointer; padding:12px 0; font-size:13px;
+                          color:#93c5fd; list-style:none; font-weight:600; }
+  details.basis summary::-webkit-details-marker { display:none; }
+  details.basis summary::before { content:'▸ '; display:inline-block; transition:.2s; }
+  details.basis[open] summary::before { transform:rotate(90deg); }
+  details.basis .content { padding:6px 0 16px; font-size:12px; color:#cbd5e1; line-height:1.8; }
+  details.basis table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+  details.basis th, details.basis td { padding:7px 10px; text-align:left; border-bottom:1px solid #1e293b; }
+  details.basis th { color:#94a3b8; font-weight:600; background:#0b1120; }
+  details.basis tr:last-child td { border-bottom:none; }
+  .disclaimer { font-size:11px; color:#64748b; margin-top:14px; line-height:1.7;
+                padding:11px; background:#0f172a; border-radius:10px; text-align:center; }
+  .field { margin-bottom:18px; }
+  .field label { display:block; font-size:13px; color:#94a3b8; margin-bottom:8px; }
+  .field .value { color:#60a5fa; font-weight:700; }
+  #ageInput { width:100px; padding:9px 12px; border-radius:10px;
+              border:1px solid #475569; background:#0f172a; color:#fff;
+              font-size:18px; text-align:center; font-weight:700; font-family:inherit; }
+  .btn-group { display:flex; flex-wrap:wrap; gap:8px; }
+  .btn-group button { flex:1 1 auto; min-width:88px; padding:10px 12px;
+                      border-radius:10px; border:1px solid #334155; background:#0f172a;
+                      color:#cbd5e1; font-size:12px; cursor:pointer;
+                      transition:.15s; font-family:inherit; }
+  .btn-group button.active { background:#2563eb; border-color:#3b82f6; color:#fff; font-weight:600; }
+  input[type=range] { width:100%; height:8px; border-radius:4px;
+                      -webkit-appearance:none; appearance:none; background:#334155; outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+                      width:22px; height:22px; border-radius:50%; background:#3b82f6;
+                      cursor:pointer; border:3px solid #1e3a5f; }
+  .inherit-banner { display:flex; align-items:center; gap:10px; padding:11px 14px;
+                    background:#0c2d48; border:1px solid #1e40af; border-radius:12px;
+                    margin-bottom:18px; font-size:13px; color:#93c5fd; flex-wrap:wrap; }
+  .inherit-banner.hidden { display:none; }
+  .inherit-banner .tag { font-weight:700; color:#60a5fa; }
+  .risk-badge { display:inline-block; padding:8px 20px; border-radius:999px;
+                font-size:14px; font-weight:700; margin-bottom:16px; }
+  .risk-low     { background:#065f46; color:#6ee7b7; }
+  .risk-mid     { background:#854d0e; color:#fcd34d; }
+  .risk-high    { background:#9a3412; color:#fdba74; }
+  .risk-extreme { background:#7f1d1d; color:#fca5a5; }
+  .advice-group { margin-bottom:18px; }
+  .advice-group-title { font-size:13px; font-weight:700; padding:7px 13px;
+                        border-radius:8px; margin-bottom:8px; display:inline-block; }
+  .advice-group-title.knowledge { background:#1e3a5f; color:#93c5fd; }
+  .advice-group-title.attitude  { background:#3b1f2e; color:#f9a8d4; }
+  .advice-group-title.behavior  { background:#1a3a2a; color:#6ee7b7; }
+  .advice-list { list-style:none; padding:0; }
+  .advice-list li { background:#0f172a; border-radius:10px; padding:11px 13px;
+                    margin-bottom:7px; font-size:13px; line-height:1.7;
+                    border-left:3px solid #3b82f6; }
+  .advice-list li.warn   { border-left-color:#f59e0b; }
+  .advice-list li.danger { border-left-color:#ef4444; }
+  .dim-def-list { list-style:none; padding:0; margin:12px 0; }
+  .dim-def-list li { background:#0f172a; border-radius:8px; padding:10px 13px;
+                     margin-bottom:7px; font-size:12px; line-height:1.7; color:#cbd5e1; }
+  .dim-def-list li b { color:#60a5fa; }
+  #cochleaCanvasBox { position:relative; width:100%; height:380px;
+                      background:#0a0a12; border-radius:12px; overflow:hidden; }
+  #cochleaCanvasBox canvas { display:block; }
+  #hud { position:absolute; top:10px; left:10px; background:rgba(0,0,0,.78);
+         padding:10px 14px; border-radius:10px; font-size:12px; line-height:1.65;
+         pointer-events:none; backdrop-filter:blur(4px); max-width:280px; }
+  #hud .big { font-size:18px; font-weight:bold; color:#4ade80; }
+  #hud .tag { display:inline-block; padding:1px 8px; border-radius:6px;
+              font-size:11px; font-weight:bold; }
+  #hud .tag.good { background:#065f46; color:#6ee7b7; }
+  #hud .tag.mid  { background:#854d0e; color:#fcd34d; }
+  #hud .tag.warn { background:#9a3412; color:#fdba74; }
+  #hud .tag.bad  { background:#7f1d1d; color:#fca5a5; }
+  #hudPreset { margin-top:8px; padding:5px 10px; border-radius:6px;
+               font-size:11px; font-weight:600; display:none;
+               background:#1e3a5f; color:#93c5fd; }
+  #hudPreset.show { display:inline-block; }
+  #topoLegend { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.78);
+                padding:7px 12px; border-radius:9px; font-size:11px; line-height:1.55; pointer-events:none; }
+  #topoLegend .line { display:flex; align-items:center; gap:6px; }
+  #topoLegend .dot { width:9px; height:9px; border-radius:50%; }
+  #aboutBtn { position:absolute; top:10px; right:10px; background:rgba(59,130,246,.9);
+              color:#fff; border:none; padding:7px 12px; border-radius:8px;
+              font-size:12px; cursor:pointer; font-family:inherit; z-index:5; }
+  #aboutBtn:hover { background:rgba(37,99,235,1); }
+  .switch-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .switch-btn { padding:8px 13px; border-radius:10px; border:1px solid #334155;
+                background:#0f172a; color:#cbd5e1; font-size:12px; cursor:pointer;
+                font-family:inherit; transition:.15s; }
+  .switch-btn:hover { border-color:#475569; }
+  .switch-btn.active { background:#059669; border-color:#10b981; color:#fff; font-weight:600; }
+  .switch-btn.preset { border-width:2px; font-weight:600; }
+  .switch-btn.preset.safe   { border-color:#10b981; color:#6ee7b7; }
+  .switch-btn.preset.safe.active { background:#059669; border-color:#34d399; color:#fff; }
+  .switch-btn.preset.notice { border-color:#fbbf24; color:#fcd34d; }
+  .switch-btn.preset.notice.active { background:#d97706; border-color:#fbbf24; color:#fff; }
+  .switch-btn.preset.warn   { border-color:#fb923c; color:#fdba74; }
+  .switch-btn.preset.warn.active { background:#ea580c; border-color:#fb923c; color:#fff; }
+  .switch-btn.preset.danger { border-color:#ef4444; color:#fca5a5; }
+  .switch-btn.preset.danger.active { background:#b91c1c; border-color:#ef4444; color:#fff; }
+  #statusBar { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; }
+  .stat { background:#1e293b; padding:7px 11px; border-radius:8px; font-size:11px; }
+  .stat .num { font-weight:bold; font-size:14px; }
+  .stat .good { color:#4ade80; }
+  .stat .bad  { color:#f87171; }
+  .stat .mid  { color:#fbbf24; }
+  #recoveryPanel { margin-top:12px; padding:11px; background:#0f172a;
+                   border-radius:10px; border:1px solid #1e293b; }
+  #recoveryPanel h4 { font-size:12px; color:#93c5fd; margin-bottom:8px; }
+  #recoveryCurve { display:block; width:100%; }
+  .import-banner { display:flex; align-items:center; gap:10px; padding:11px 14px;
+                   background:#1a2e1a; border:1px solid #15803d; border-radius:12px;
+                   margin-bottom:14px; font-size:12px; color:#86efac; flex-wrap:wrap; }
+  .import-banner.hidden { display:none; }
+  .report-hero { text-align:center; padding:24px 20px 20px; }
+  .report-hero .title { font-size:15px; color:#94a3b8; margin-bottom:10px; }
+  .report-hero .percentile {
+    font-size:14px; color:#cbd5e1; margin-top:14px; line-height:1.7;
+    padding:12px 16px; background:#0f172a; border-radius:12px;
+    border-left:3px solid #60a5fa; text-align:left;
+  }
+  .report-hero .percentile b { color:#fbbf24; }
+  .report-section { background:#1e293b; border-radius:16px; padding:20px;
+    margin-bottom:16px; border:1px solid #334155; position:relative; }
+  .report-section .section-num {
+    position:absolute; top:-12px; left:20px;
+    background:linear-gradient(135deg,#2563eb,#7c3aed);
+    color:#fff; font-size:12px; font-weight:700;
+    padding:4px 14px; border-radius:999px;
+  }
+  .report-section h2 { font-size:16px; color:#f1f5f9; margin:8px 0 14px;
+    padding-bottom:10px; border-bottom:1px solid #334155; }
+  .kv-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:16px; }
+  @media (max-width:500px) { .kv-grid { grid-template-columns:1fr; } }
+  .kv-box { background:#0f172a; border-radius:10px; padding:12px 14px; }
+  .kv-box .k { font-size:11px; color:#94a3b8; margin-bottom:5px; }
+  .kv-box .v { font-size:20px; font-weight:700; color:#60a5fa; }
+  .kv-box .v span { font-size:12px; color:#64748b; font-weight:400; }
+  .mini-cochlea { position:relative; width:100%; height:240px;
+    background:#0a0a12; border-radius:12px; overflow:hidden; margin:12px 0; }
+  .mini-cochlea canvas { display:block; width:100%; height:100%; }
+  .mini-cochlea .legend { position:absolute; bottom:8px; left:8px;
+    background:rgba(0,0,0,.7); padding:6px 10px; border-radius:8px;
+    font-size:10px; line-height:1.6; color:#94a3b8; pointer-events:none; }
+  .mini-cochlea .legend .dot { display:inline-block; width:7px; height:7px;
+    border-radius:50%; margin-right:4px; vertical-align:middle; }
+  .cause-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  .cause-box { flex:1; min-width:110px; background:#0f172a; border-radius:10px;
+               padding:12px; text-align:center; }
+  .cause-box .k { font-size:11px; color:#94a3b8; margin-bottom:4px; }
+  .cause-box .v { font-size:22px; font-weight:700; }
+  .cause-box .u { font-size:10px; color:#64748b; }
+  .pie-wrap { position:relative; width:100%; max-width:280px; margin:14px auto; }
+  #pieCanvas { display:block; width:100%; }
+  .before-after { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
+  .ba-box { flex:1; min-width:130px; background:#0f172a; border-radius:10px;
+            padding:14px; text-align:center; border:1px solid #1e293b; }
+  .ba-box.before { border-color:#7f1d1d; }
+  .ba-box.after { border-color:#065f46; }
+  .ba-box .label { font-size:11px; color:#94a3b8; margin-bottom:6px; }
+  .ba-box .val { font-size:22px; font-weight:700; }
+  .ba-box.before .val { color:#f87171; }
+  .ba-box.after .val { color:#4ade80; }
+  .ba-box .delta { font-size:11px; margin-top:4px; color:#64748b; }
+  .revisit-hint { background:#1a2e1a; border:1px solid #15803d; border-radius:12px;
+    padding:14px; margin-top:14px; font-size:13px; line-height:1.7; color:#86efac; }
+  .revisit-hint b { color:#4ade80; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.85);
+                   display:flex; align-items:center; justify-content:center;
+                   padding:20px; z-index:100; }
+  .modal { background:#1e293b; max-width:660px; width:100%; max-height:85vh;
+           overflow-y:auto; border-radius:16px; padding:22px; }
+  .modal.wide { max-width:820px; }
+  .modal h2 { font-size:17px; margin-bottom:12px; color:#60a5fa; }
+  .modal h3 { font-size:14px; margin:16px 0 7px; color:#93c5fd; }
+  .modal p, .modal li { font-size:12px; line-height:1.8; color:#cbd5e1; }
+  .modal ul { padding-left:18px; margin:7px 0; }
+  .modal code { background:#0f172a; padding:2px 6px; border-radius:4px;
+                font-family:Consolas, monospace; color:#93c5fd; font-size:11px;
+                display:inline-block; margin:2px 0; }
+  .modal .warn-box { background:#3b1f1f; border-left:3px solid #ef4444;
+                     padding:11px 13px; border-radius:8px; margin-top:12px;
+                     font-size:12px; line-height:1.7; }
+  .modal .close { margin-top:18px; width:100%; padding:11px; border-radius:10px;
+                  border:none; background:#334155; color:#fff; font-size:14px;
+                  cursor:pointer; font-family:inherit; }
+  .modal .close:hover { background:#475569; }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .modal-header h2 { margin:0; }
+  .modal-header .close-btn { width:auto; margin:0; padding:6px 14px;
+                             background:#334155; border-radius:8px; font-size:12px; border:none;
+                             color:#fff; cursor:pointer; font-family:inherit; }
+  #wjxContainer { background:#fff; border-radius:12px; min-height:500px; overflow:auto; }
+  #wjxContainer iframe { display:block; margin:0 auto; }
+  #pretestContainer { background:#fff; border-radius:12px; padding:12px; margin-bottom:16px; overflow-x:auto; }
+  #pretestContainer iframe { display:block; margin:0 auto; min-width:320px; max-width:750px; width:100%; }
+  .pretest-hint { font-size:12px; color:#94a3b8; line-height:1.7; margin-bottom:16px;
+                  padding:12px 14px; background:#0f172a; border-radius:10px; border-left:3px solid #3b82f6; }
+  .pretest-hint b { color:#60a5fa; }
+
+  .welcome-card { text-align:center; padding:36px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid #334155; }
+  .welcome-icon { font-size:56px; margin-bottom:12px; }
+  .welcome-title { font-size:22px; color:#f1f5f9; margin-bottom:8px; font-weight:800; }
+  .welcome-sub { font-size:14px; color:#60a5fa; margin-bottom:28px; }
+  .welcome-steps { display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
+  .welcome-steps .step { flex:1; min-width:130px; background:#0f172a; border-radius:12px; padding:16px 12px; border:1px solid #1e293b; text-align:center; }
+  .welcome-steps .step-icon { font-size:22px; color:#60a5fa; font-weight:800; margin-bottom:8px; }
+  .welcome-steps .step-title { font-size:13px; font-weight:700; color:#e2e8f0; margin-bottom:6px; }
+  .welcome-steps .step-desc { font-size:11px; color:#94a3b8; line-height:1.6; }
+  .welcome-tips { text-align:left; background:#0f172a; border-radius:12px; padding:14px 18px; margin-bottom:22px; font-size:13px; line-height:1.9; color:#cbd5e1; }
+  .welcome-tips ul { padding-left:20px; margin-top:6px; }
+  .welcome-tips li { color:#cbd5e1; }
+  .welcome-tips .warn-text { margin-top:10px; color:#fbbf24; font-size:12px; }
+  .welcome-tips .save-hint { margin-top:10px; color:#4ade80; font-size:12px; line-height:1.7; }
+
+  .code-display { text-align:center; background:#0f172a; border:2px solid #3b82f6; border-radius:16px; padding:24px 20px; margin:20px 0; }
+  .code-display .label { font-size:13px; color:#94a3b8; margin-bottom:12px; }
+  .code-display .code { font-family:Consolas, monospace; font-size:56px; font-weight:800; color:#60a5fa; letter-spacing:12px; line-height:1.2; }
+  .code-display .status { font-size:12px; color:#64748b; margin-top:10px; min-height:18px; }
+  .code-display.loading .code { color:#475569; animation:pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:0.3; } 50% { opacity:1; } }
+  .manual-code-toggle { font-size:12px; color:#60a5fa; text-align:center; margin-top:14px; cursor:pointer; text-decoration:underline; }
+  .manual-code-area { display:none; margin-top:14px; padding-top:14px; border-top:1px solid #334155; }
+  .manual-code-area.show { display:block; }
+  .manual-code-area input { width:140px; padding:12px 14px; border-radius:10px; border:2px solid #475569; background:#0f172a; color:#fff; font-size:20px; text-align:center; font-weight:700; letter-spacing:6px; font-family:Consolas, monospace; outline:none; margin-right:10px; }
+
+  .finish-card { text-align:center; padding:28px 20px; background:linear-gradient(135deg,#1e293b,#0f172a); }
+  .finish-card .code-big { font-family:Consolas, monospace; font-size:36px; font-weight:800; color:#60a5fa; letter-spacing:8px; margin:12px 0 8px; }
+  .finish-card .hint { font-size:12px; color:#94a3b8; margin-bottom:20px; line-height:1.7; }
+  .finish-card .btn-row { justify-content:center; }
+  .finish-card .btn { min-width:200px; }
+  .save-tip { font-size:13px; margin-top:14px; color:#4ade80; display:none; }
+  .save-tip.show { display:block; }
+  .hidden { display:none !important; }
 </style>
 </head>
 <body>
-<h1>📊 听力测试数据管理</h1>
-<p class="subtitle">仅研究者可见。数据实时存储于服务器，可导出 CSV 分析。</p>
 
-<div id="pwdBar">
-  <input id="pwdInput" type="password" placeholder="输入管理密码" value="research2025">
-  <button class="btn primary" onclick="loadData()">进入</button>
+<div class="app">
+
+  <h1>🎧 听力健康工具套件</h1>
+  <p class="subtitle">测听力年龄 → 拆分年龄与噪声成因 → 生成三段式安全报告 → 看毛细胞损伤。三个模块数据互通。</p>
+
+  <div class="card welcome-card" id="welcomeGate" style="display:none;">
+    <div class="welcome-icon">🎧</div>
+    <h2 class="welcome-title">欢迎进入听力健康仿真互动平台</h2>
+    <p class="welcome-sub">一次测试，看懂你的听力状态</p>
+    <div class="welcome-steps">
+      <div class="step"><div class="step-icon">①</div><div class="step-title">听力年龄测试</div><div class="step-desc">9 个高频点<br>画出你的听阈曲线</div></div>
+      <div class="step"><div class="step-icon">②</div><div class="step-title">听力安全报告</div><div class="step-desc">5 维雷达<br>损伤成因拆分</div></div>
+      <div class="step"><div class="step-icon">③</div><div class="step-title">3D 毛细胞仿真</div><div class="step-desc">直观看到<br>噪声如何损伤毛细胞</div></div>
+    </div>
+    <div class="welcome-tips">
+      <p>📌 <b>开始前请准备：</b></p>
+      <ul>
+        <li>🎧 一副耳机（有线 / 无线均可）</li>
+        <li>🤫 相对安静的环境</li>
+        <li>⏱️ 约 5 分钟时间</li>
+      </ul>
+      <p class="save-hint">✅ 测试完成后请<b>务必先「保存数据」</b>，确认保存成功后再进入后测问卷。</p>
+      <p class="warn-text">⚠️ 本工具为教学演示，结果不构成医学诊断</p>
+    </div>
+    <button class="btn" id="welcomeStartBtn" type="button" style="width:100%; font-size:16px; padding:16px;">开始体验 →</button>
+  </div>
+
+  <div class="card" id="codeGate" style="display:none;">
+    <h2>📋 您的研究编码</h2>
+    <p style="font-size:14px; color:#cbd5e1; line-height:1.9; margin-bottom:8px;">
+      系统已为您<b style="color:#60a5fa;">自动分配</b>专属研究编码。<br>
+      <b style="color:#fbbf24;">请截图或抄写保存！</b>本次<b>前测</b>、<b>交互模型</b>、后续<b>后测</b>、<b>30 天随访问卷</b>，都将使用该编码。
+    </p>
+    <div class="code-display loading" id="codeDisplayBox">
+      <div class="label">您的研究编码</div>
+      <div class="code" id="codeValue">— — — —</div>
+      <div class="status" id="codeStatus">正在为您分配编码…</div>
+    </div>
+    <button class="btn" id="codeConfirmBtn" type="button" style="width:100%;" disabled>我已记住，开始前测 →</button>
+    <p class="manual-code-toggle" id="manualToggle">如果您之前已经保存过编码，点此手动输入</p>
+    <div class="manual-code-area" id="manualArea">
+      <p style="font-size:12px; color:#94a3b8; margin-bottom:10px;">输入您之前保存的 4 位编码：</p>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="manualCodeInput" maxlength="4" placeholder="例如 0510">
+        <button class="btn secondary" id="manualConfirmBtn" type="button" style="padding:10px 20px; font-size:14px;">使用这个编码</button>
+      </div>
+    </div>
+    <p style="font-size:11px; color:#64748b; margin-top:16px; line-height:1.7;">⚠️ 每个编码在本研究中唯一。编码不一致将无法合并您的数据。</p>
+  </div>
+
+  <div class="card" id="pretestGate" style="display:none;">
+    <h2>📝 前测问卷</h2>
+    <p style="font-size:14px; color:#cbd5e1; line-height:1.9; margin-bottom:16px;">
+      请先完成以下前测问卷。填写并提交后，会<b style="color:#4ade80;">自动进入互动模型</b>。<br>
+      如果提交后没有自动跳转，请点击页面下方的<b style="color:#4ade80;">「✓ 我已完成前测，进入互动模型」</b>按钮继续。
+    </p>
+    <div class="pretest-hint">💡 <b>关于研究编码：</b>问卷中需要填写您的研究编码 <b id="pretestCodeDisplay">—</b>。<br>请确认您已记住或截图保存该编码，后续「后测问卷」「30 天随访问卷」都需要它。</div>
+    <div id="pretestContainer"></div>
+    <button class="btn success" id="pretestDoneBtn" type="button" style="width:100%; font-size:16px; padding:16px; margin-top:12px;">✓ 我已完成前测，进入互动模型 →</button>
+    <p style="font-size:11px; color:#64748b; margin-top:14px; line-height:1.7;">⚠️ 如果问卷加载缓慢或无法显示，请检查网络连接，或联系研究者获取问卷链接。</p>
+  </div>
+
+  <div id="mainApp" style="display:none;">
+    <div id="videoWrap" class="hidden">
+      <video id="video" src="video.mp4" controls muted playsinline></video>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="test" type="button">① 听力年龄测试</button>
+      <button class="tab-btn" data-tab="report" type="button">② 听力安全报告</button>
+      <button class="tab-btn" data-tab="cochlea" type="button">③ 毛细胞损伤</button>
+    </nav>
+
+    <section class="tab-panel active" id="tab-test">
+      <div class="card hero" id="testIntro">
+        <h2>听力年龄测试</h2>
+        <p>
+          依次播放 <b>8k / 10k / 12k / 14k / 16k / 17k / 18k / 19k / 20k Hz</b> 九个高频纯音。<br>
+          每听到一个，点「我听到了」；没听到点「没听到」。<br>
+          <b>请戴耳机</b>，在安静环境下进行。
+        </p>
+        <div class="field" style="text-align:center;">
+          <label>请先输入你的年龄：</label>
+          <input type="number" id="ageInput" value="22" min="8" max="80" step="1">
+          <span style="color:#94a3b8; margin-left:6px;">岁</span>
+        </div>
+        <button class="btn" id="startTestBtn" type="button">开始测试</button>
+        <p class="disclaimer" style="text-align:left; margin-top:16px;">
+          ⚠️ 结果受播放设备、耳机频响、音量、环境噪声影响，仅作筛查提示与科普，<b>不能作为医学诊断</b>。<br>
+          18kHz 以上很多手机扬声器和普通耳机无法准确输出，结果仅供参考。
+        </p>
+      </div>
+
+      <div class="card hidden" id="testRunning">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="freq-display">
+          <div><span class="num" id="freqNum">8000</span> <span class="unit">Hz</span></div>
+          <div class="hint" id="freqHint">正在播放…</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn yes" id="heardBtn" type="button">👂 我听到了</button>
+          <button class="btn no"  id="notHeardBtn" type="button">🔇 没听到</button>
+        </div>
+        <p style="text-align:center; color:#64748b; font-size:12px; margin-top:14px;">
+          第 <span id="curIdx">1</span> / 9 个频率
+        </p>
+      </div>
+
+      <div class="card hidden" id="testResult">
+        <h2>你的听阈曲线</h2>
+        <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+        <div class="age-result">
+          <div class="label">估算听力年龄</div>
+          <div class="big" id="ageBig">— <span>岁</span></div>
+          <div class="diff" id="ageDiff"></div>
+        </div>
+        <div class="freq-list" id="freqList"></div>
+
+        <div id="causeSplitBox" style="margin-top:16px; padding:14px;
+             background:#0f172a; border-radius:12px; border:1px solid #1e293b;">
+          <p style="font-size:13px; color:#93c5fd; font-weight:600; margin-bottom:10px;">🔬 损伤成因拆分</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">年龄所致</div>
+              <div style="font-size:22px; font-weight:700; color:#60a5fa;" id="ageOffsetNum">—</div>
+              <div style="font-size:11px; color:#64748b;">dB HL</div>
+            </div>
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">噪声所致</div>
+              <div style="font-size:22px; font-weight:700; color:#f87171;" id="noiseOffsetNum">—</div>
+              <div style="font-size:11px; color:#64748b;">dB HL</div>
+            </div>
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">噪声占比</div>
+              <div style="font-size:22px; font-weight:700; color:#fbbf24;" id="noiseRatioNum">—</div>
+              <div style="font-size:11px; color:#64748b;">%</div>
+            </div>
+          </div>
+        </div>
+
+        <details class="basis">
+          <summary>📖 估算依据</summary>
+          <div class="content">
+            <table>
+              <thead><tr><th>最高频率</th><th>估算听力年龄</th></tr></thead>
+              <tbody>
+                <tr><td>20000 Hz</td><td>约 18 岁</td></tr>
+                <tr><td>19000 Hz</td><td>约 22 岁</td></tr>
+                <tr><td>18000 Hz</td><td>约 25 岁</td></tr>
+                <tr><td>17000 Hz</td><td>约 28 岁</td></tr>
+                <tr><td>16000 Hz</td><td>约 33 岁</td></tr>
+                <tr><td>14000 Hz</td><td>约 38 岁</td></tr>
+                <tr><td>12000 Hz</td><td>约 43 岁</td></tr>
+                <tr><td>10000 Hz</td><td>约 48 岁</td></tr>
+                <tr><td>8000 Hz</td><td>约 53 岁</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <p class="disclaimer">
+          ⚠️ 结果受播放设备影响，仅作筛查提示与科普，不能作为医学诊断。
+        </p>
+
+        <div style="text-align:center; margin-top:16px;">
+          <button class="btn secondary" id="gotoReportBtn" type="button">→ 去生成听力安全报告</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-report">
+      <div class="card" id="reportForm">
+        <h2>智能听力安全报告</h2>
+        <p style="font-size:12px; color:#64748b; margin-bottom:16px; line-height:1.7;">
+          本报告基于 <b>WHO/NIOSH 标准</b> 构建的规则引擎生成。以下参数全部由你<b>手动填写</b>。
+        </p>
+        <div class="inherit-banner hidden" id="inheritBanner">
+          <span class="tag">已从听力测试带入：</span>
+          <span>最高可闻频率 <b id="inheritFreq">—</b></span>
+          <span>· 听力年龄 <b id="inheritAge">—</b></span>
+          <span>· 年龄 <b id="inheritUserAge">—</b></span>
+        </div>
+        <div class="field">
+          <label>👤 年龄（从测试带入）：<span class="value" id="reportAge">22 岁</span></label>
+        </div>
+        <div class="field">
+          <label>🎒 开始使用耳机的年龄：</label>
+          <div class="btn-group" id="ageStartGroup">
+            <button type="button" data-start="10">12 岁以下</button>
+            <button type="button" data-start="15">13-16 岁</button>
+            <button type="button" data-start="18" class="active">17 岁以上</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>⏱️ 单次连续佩戴时长：<span class="value" id="sessionVal">60 分钟</span></label>
+          <input type="range" id="sessionSlider" min="10" max="480" value="60" step="10">
+        </div>
+        <div class="field">
+          <label>📅 全天累计使用时长：<span class="value" id="dailyVal">3 小时</span></label>
+          <input type="range" id="dailySlider" min="0.5" max="16" value="3" step="0.5">
+        </div>
+        <div class="field">
+          <label>🔊 常用音量档位：<span class="value" id="volumeVal">60%</span></label>
+          <input type="range" id="volumeSlider" min="10" max="100" value="60" step="5">
+        </div>
+        <div class="field">
+          <label>📍 主要使用场景（可多选）：</label>
+          <div class="btn-group" id="sceneGroup">
+            <button type="button" data-scene="commute">🚇 通勤</button>
+            <button type="button" data-scene="work">💼 学习/工作</button>
+            <button type="button" data-scene="sleep">😴 睡眠</button>
+            <button type="button" data-scene="sport">🏃 运动</button>
+            <button type="button" data-scene="entertain">🎮 娱乐</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>🎧 耳机类型：</label>
+          <div class="btn-group" id="typeGroup">
+            <button type="button" data-type="inEar" class="active">入耳式</button>
+            <button type="button" data-type="overEar">头戴式</button>
+            <button type="button" data-type="bone">骨传导/开放式</button>
+          </div>
+        </div>
+        <details class="basis" style="margin-bottom:16px;">
+          <summary>🔍 报告生成逻辑</summary>
+          <div class="content" id="logicContent"></div>
+        </details>
+        <button class="btn" id="genBtn" type="button" style="width:100%;">生成我的听力安全报告</button>
+      </div>
+
+      <div id="reportResult" class="hidden">
+        <div class="card report-hero">
+          <div class="title">听力风险等级（由听力年龄差驱动）</div>
+          <div id="riskBadge" class="risk-badge"></div>
+          <div class="percentile" id="percentileText">—</div>
+          <div class="percentile" id="habitScoreText" style="margin-top:10px; border-left-color:#a78bfa;">—</div>
+        </div>
+
+        <div class="report-section">
+          <div class="section-num">第 1 段</div>
+          <h2>📏 测量结果</h2>
+          <div class="kv-grid">
+            <div class="kv-box">
+              <div class="k">最高可听频率</div>
+              <div class="v" id="seg1MaxFreq">— <span>Hz</span></div>
+            </div>
+            <div class="kv-box">
+              <div class="k">估算听力年龄</div>
+              <div class="v" id="seg1HearingAge">— <span>岁</span></div>
+            </div>
+            <div class="kv-box">
+              <div class="k">实际年龄</div>
+              <div class="v" id="seg1UserAge">— <span>岁</span></div>
+            </div>
+            <div class="kv-box">
+              <div class="k">听力状态</div>
+              <div class="v" id="seg1AgeDiff">—</div>
+            </div>
+          </div>
+          <h3 style="margin-top:14px;">🕸️ 五维听觉画像</h3>
+          <div class="chart-wrap"><canvas id="radar5Canvas"></canvas></div>
+          <ul class="dim-def-list" id="radar5DefList"></ul>
+        </div>
+
+        <div class="report-section">
+          <div class="section-num">第 2 段</div>
+          <h2>🔬 损伤呈现</h2>
+
+          <h3>三维耳蜗损伤分布</h3>
+          <div class="mini-cochlea" id="miniCochleaBox">
+            <div class="legend">
+              <span class="dot" style="background:#4ade80;"></span>健康
+              <span class="dot" style="background:#fbbf24;margin-left:8px;"></span>受损
+              <span class="dot" style="background:#ef4444;margin-left:8px;"></span>濒死
+              <span class="dot" style="background:#1a1a1a;border:1px solid #333;margin-left:8px;"></span>已死亡
+              <div style="margin-top:4px;">🌀 底回（高频）→ 顶回（低频）</div>
+            </div>
+          </div>
+          <p style="font-size:11px; color:#64748b; margin-top:6px; text-align:center;">
+            完整交互版本请切到 <b>③ 毛细胞损伤</b> 标签
+          </p>
+
+          <h3 style="margin-top:18px;">损伤成因拆分</h3>
+          <div class="pie-wrap"><canvas id="pieCanvas"></canvas></div>
+          <div class="cause-row">
+            <div class="cause-box">
+              <div class="k">年龄所致</div>
+              <div class="v" style="color:#60a5fa;" id="seg2AgeOffset">—</div>
+              <div class="u">dB HL</div>
+            </div>
+            <div class="cause-box">
+              <div class="k">噪声所致</div>
+              <div class="v" style="color:#f87171;" id="seg2NoiseOffset">—</div>
+              <div class="u">dB HL</div>
+            </div>
+            <div class="cause-box">
+              <div class="k">噪声占比</div>
+              <div class="v" style="color:#fbbf24;" id="seg2NoiseRatio">—</div>
+              <div class="u">%</div>
+            </div>
+          </div>
+          <div style="margin-top:14px; padding:12px; background:#0f172a;
+               border-radius:10px; border-left:3px solid #f87171; font-size:13px;
+               line-height:1.7; color:#cbd5e1;" id="seg2Explanation">
+            空间规律说明加载中…
+          </div>
+        </div>
+
+        <div class="report-section">
+          <div class="section-num">第 3 段</div>
+          <h2>🎯 行动建议</h2>
+
+          <h3>保护措施前后对比</h3>
+          <div class="before-after">
+            <div class="ba-box before">
+              <div class="label">当前习惯</div>
+              <div class="val" id="baBefore">—%</div>
+              <div class="delta">毛细胞预计存活率</div>
+            </div>
+            <div class="ba-box after">
+              <div class="label">启用保护后</div>
+              <div class="val" id="baAfter">—%</div>
+              <div class="delta" id="baDelta">—</div>
+            </div>
+          </div>
+          <p style="font-size:11px; color:#64748b; line-height:1.6;">
+            保护措施：限音量 ≤60% + 单次 ≤60 分钟 + 在嘈杂环境使用降噪设备。
+          </p>
+
+          <h3 style="margin-top:18px;">📝 逐级建议（KAP 三层）</h3>
+          <div class="advice-group">
+            <div class="advice-group-title knowledge">📚 知识层</div>
+            <ul class="advice-list" id="adviceKnowledge"></ul>
+          </div>
+          <div class="advice-group">
+            <div class="advice-group-title attitude">💭 态度层</div>
+            <ul class="advice-list" id="adviceAttitude"></ul>
+          </div>
+          <div class="advice-group">
+            <div class="advice-group-title behavior">🎯 行为意向层</div>
+            <ul class="advice-list" id="adviceBehavior"></ul>
+          </div>
+
+          <div class="revisit-hint" id="revisitHint">
+            💡 <b>如果三个月后再测一次</b>……
+          </div>
+
+          <div class="disclaimer" style="margin-top:16px;">
+            *本报告基于 WHO 60-60-60 原则、WHO-ITU H.870、NIOSH 85 dBA/8h 估算，仅供健康教育参考，非医学诊断。<br>
+            如出现耳鸣、耳闷或听力下降，请及时到耳鼻喉科就诊。
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" id="gotoCochleaBtn" type="button" style="flex:1;">→ 在完整 3D 模拟器中查看</button>
+          <button class="btn secondary" id="resetBtn" type="button" style="flex:1;">重新填写</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-cochlea">
+      <div class="card">
+        <div class="import-banner hidden" id="importBanner"></div>
+        <div id="cochleaCanvasBox">
+          <div id="hud">
+            <div>日剂量：<span class="big" id="hudDose">0</span>%</div>
+            <div>毛细胞存活率：<span class="big" id="hudSurvival">100</span>%</div>
+            <div style="margin-top:8px; padding-top:8px; border-top:1px solid #334155;">
+              <div>综合风险等级：<span class="tag good" id="hudOverallRisk">安全</span></div>
+              <div style="font-size:10px; color:#64748b; margin-top:4px; line-height:1.5;">
+                取严规则：综合风险 = max(剂量档, 毛细胞损伤档)<br>
+                四档统一命名：安全 / 注意 / 警告 / 危险
+              </div>
+            </div>
+            <div id="hudPreset"></div>
+          </div>
+          <div id="topoLegend">
+            <div class="line"><span class="dot" style="background:#4ade80;"></span>健康</div>
+            <div class="line"><span class="dot" style="background:#fbbf24;"></span>受损</div>
+            <div class="line"><span class="dot" style="background:#ef4444;"></span>濒死</div>
+            <div class="line"><span class="dot" style="background:#1a1a1a;border:1px solid #333;"></span>已死亡</div>
+            <div style="margin-top:5px; color:#94a3b8; font-size:10px;">🌀 底回（高频）→ 顶回（低频）</div>
+          </div>
+          <button id="aboutBtn" type="button">ℹ️ 关于本模型</button>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="field">
+            <label>🔊 音量：<span class="value" id="dbVal">85 dB</span></label>
+            <input type="range" id="dbSlider" min="60" max="120" value="85" step="1">
+            <p style="font-size:11px; color:#64748b; margin-top:6px; line-height:1.6;">
+              ⚠️ 此处为<b style="color:#fbbf24;">声级 dB</b>，非百分比；NIOSH 安全限值为 <b style="color:#fbbf24;">85 dB / 8h</b>。
+            </p>
+          </div>
+          <div class="field">
+            <label>⏱️ 每天使用时长：<span class="value" id="hoursVal">8.0 小时</span></label>
+            <input type="range" id="hoursSlider" min="0.5" max="24" value="8" step="0.5">
+          </div>
+          <div class="field">
+            <label>📅 持续天数：<span class="value" id="daysVal">0 天</span></label>
+            <input type="range" id="daysSlider" min="0" max="3650" value="0" step="1">
+          </div>
+          <div class="field">
+            <label>🛌 停曝后经过天数：<span class="value" id="afterVal">0 天</span></label>
+            <input type="range" id="afterSlider" min="0" max="365" value="0" step="1">
+          </div>
+          <div class="switch-row">
+            <button class="switch-btn" id="protectVol" type="button">🛡️ 限音量 ≤60%</button>
+            <button class="switch-btn" id="protectTime" type="button">⏰ 单次 ≤60 分钟</button>
+            <button class="switch-btn" id="protectPlug" type="button">🔇 戴防噪耳塞</button>
+          </div>
+          <div class="switch-row" style="margin-top:8px; padding-top:12px; border-top:1px solid #1e293b;">
+            <button class="switch-btn preset safe" id="presetSafe" type="button" style="font-size:11px;">安全对照</button>
+            <button class="switch-btn preset notice" id="presetNotice" type="button" style="font-size:11px;">注意</button>
+            <button class="switch-btn preset warn" id="presetWarn" type="button" style="font-size:11px;">警告</button>
+            <button class="switch-btn preset danger" id="presetDanger" type="button" style="font-size:11px;">危险</button>
+          </div>
+          <div id="statusBar">
+            <div class="stat">日暴露剂量：<span class="num" id="doseStat">0</span>%</div>
+            <div class="stat">有效声级：<span class="num" id="effDbStat">85</span> dB</div>
+            <div class="stat">有效时长：<span class="num" id="effHoursStat">8.0</span> h</div>
+            <div class="stat">毛细胞存活：<span class="num good" id="survivalStat">100</span>%</div>
+            <div class="stat">已死亡：<span class="num" id="deadStat">0</span> / 120</div>
+          </div>
+          <div id="recoveryPanel">
+            <h4>📉 停曝后恢复曲线（TTS → PTS）</h4>
+            <canvas id="recoveryCurve"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card finish-card" id="finishCard" style="display:none;">
+        <h2 style="margin-bottom:4px;">🎉 完成本次测试</h2>
+        <p style="font-size:13px; color:#94a3b8;">您的研究编码是</p>
+        <div class="code-big" id="finishCode">—</div>
+        <p class="hint">
+          <b style="color:#fbbf24;">请截图或抄写这个编码并妥善保存！</b><br>
+          后续「后测问卷」「30 天随访问卷」都需要填写这个编码。编码不一致将无法合并您的数据。
+        </p>
+        <div id="finishWarnBar" style="background:#7c2d12; border:1px solid #ea580c;
+             border-radius:10px; padding:12px 16px; margin:0 0 20px;
+             font-size:13px; line-height:1.8; color:#fed7aa; text-align:left;">
+          ⚠️ <b>请先点击「💾 保存我的数据」</b>，确认按钮变为「✓ 数据已保存」后，再点击「📝 进入后测问卷」。<br>
+          未保存就离开页面，本次测试数据可能无法与研究记录配对。
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="saveDataBtn" type="button">💾 保存我的数据（第 1 步）</button>
+          <button class="btn success" id="postTestBtn" type="button">📝 进入后测问卷（第 2 步）</button>
+        </div>
+        <p class="save-tip" id="saveTip">✓ 数据已保存，研究者可在后台查看。</p>
+        <p style="font-size:11px; color:#64748b; margin-top:16px; line-height:1.7;">
+          点击「保存」后，研究者可在后台看到您的研究编码与本次测试结果；点击「进入后测问卷」将打开问卷星后测页面。
+        </p>
+      </div>
+    </section>
+  </div>
 </div>
 
-<div id="main" style="display:none;">
-  <div class="stats" id="stats"></div>
-  <div class="toolbar">
-    <button class="btn primary" onclick="loadData()">🔄 刷新</button>
-    <button class="btn secondary" onclick="exportCSV()">⬇️ 导出 CSV</button>
-    <button class="btn secondary" onclick="exportJSON()">⬇️ 导出 JSON</button>
+<div class="modal-overlay hidden" id="aboutModal">
+  <div class="modal">
+    <h2>关于本模型</h2>
+    <h3>1. 日暴露剂量计算</h3>
+    <p><code>Leq8h = dB + 10 × log₁₀(小时数 / 8)</code></p>
+    <p><code>日剂量比 = 2^((Leq8h − 85) / 3)</code></p>
+    <h3>2. 累积暴露（含接近阈值预警 + log 压缩）</h3>
+    <p><code>excess = max(0, 日剂量比 − 1)</code></p>
+    <p><code>warning = max(0, (日剂量比 − 0.3) × 2.5)</code></p>
+    <p><code>rawE = (excess + warning) × 天数 × 恢复因子 × 0.005</code></p>
+    <p><code>E = log(1 + rawE) × 3</code></p>
+    <h3>3. 毛细胞存活率映射（频率拓扑）</h3>
+    <p><code>阈值(t) = 0.5 + 15t</code>（t=0 底回高频，t=1 顶回低频）</p>
+    <p><code>细胞损伤 = clamp((E − 阈值(t)) / 0.5, 0, 1)</code></p>
+    <h3>4. TTS 与 PTS</h3>
+    <p>可恢复比例 = <code>exp(−天数 / 60)</code>；停曝后剩余损伤 = <code>永久部分 + 可恢复部分 × exp(−t / 30)</code>。</p>
+    <h3>5. 四档预设参数</h3>
+    <ul>
+      <li><b>安全对照</b>：78 dB × 2h × 120天 → 全绿</li>
+      <li><b>注意</b>：93 dB × 1h × 365天 → 底回约 19% 变黄</li>
+      <li><b>警告</b>：95 dB × 4h × 730天 → 底回约 75% 变红/黑</li>
+      <li><b>危险</b>：102 dB × 6h × 1095天 → 全部 100% 变黑</li>
+    </ul>
+    <h3>6. 风险等级：四档统一命名</h3>
+    <p><b>四档：</b>安全 / 注意 / 警告 / 危险</p>
+    <p><b>剂量档：</b>日剂量比 &lt;1 安全 ｜ 1~2 注意 ｜ 2~4 警告 ｜ &gt;4 危险</p>
+    <p><b>毛细胞损伤档：</b>存活 &gt;90% 安全 ｜ 70~90% 注意 ｜ 30~70% 警告 ｜ &lt;30% 危险</p>
+    <p><b>综合风险：</b>取剂量档与损伤档中<b>较严者</b></p>
+    <h3>7. 听力年龄计算</h3>
+    <p>九频点听到/未听到的模式，与各候选年龄的预期模式逐点比对。若匹配得到的听力年龄小于实际年龄，显示为实际年龄，文案说明"本次未检出高频听阈偏移"。</p>
+    <h3>8. 年龄基线（M1）</h3>
+    <p>20 岁基线：8k 约 5 dB，12.5k 约 16 dB，16k 约 26 dB，20k 约 42 dB。</p>
+    <p>年龄修正量按 ISO 7029:2017、中华耳科学杂志 2020、中疾控张美辨团队 2025 推算。</p>
+    <h3>9. 保护措施模型</h3>
+    <ul>
+      <li><b>限音量 ≤60%</b>：有效声级上限 85 dB。</li>
+      <li><b>单次 ≤60 分钟</b>：有效暴露时长 = 1h + 超出部分 20%。</li>
+      <li><b>戴防噪耳塞</b>：有效声级 −15 dB。</li>
+    </ul>
+    <h3>10. 来源</h3>
+    <ul>
+      <li>ISO 7029:2017 声学 听阈与年龄和性别关系的统计分布</li>
+      <li>中华耳科学杂志 2020 正常青中年人扩展高频听阈参考基线</li>
+      <li>中疾控张美辨团队 2025 耳科正常中国人听阈偏差值统计分布</li>
+      <li>NIOSH (1998) 职业噪声暴露推荐标准</li>
+      <li>WHO (2021) 世界听力报告</li>
+      <li>WHO-ITU H.870 (2018) 安全听音设备标准</li>
+      <li>Liberman, M.C. (2017) 噪声性与年龄相关听力损失</li>
+    </ul>
+    <div class="warn-box">
+      <b>⚠️ 教学设定标注</b><br>
+      本模型为教学演示工具，所有数值均为简化近似，不能用于医学诊断或职业健康评估。
+    </div>
+    <button class="close" id="closeAbout" type="button">关闭</button>
   </div>
-  <div id="tableWrap"><div class="empty">加载中…</div></div>
+</div>
+
+<div class="modal-overlay hidden" id="postTestModal">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h2>📝 后测问卷</h2>
+      <button class="close-btn" id="closePostTest" type="button">关闭</button>
+    </div>
+    <p style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">
+      请先填写您的研究编码：
+      <b id="postTestCode" style="color:#60a5fa; font-family:Consolas, monospace; font-size:18px; letter-spacing:3px;">—</b>
+    </p>
+    <p style="font-size:12px; color:#94a3b8; margin-bottom:14px;">
+      如问卷无法正常加载，请
+      <a href="https://v.wjx.cn/vm/Pbx9XkM.aspx#" target="_blank"
+         style="color:#60a5fa; text-decoration:underline;">点此在新窗口打开</a>。
+    </p>
+    <div id="wjxContainer"></div>
+  </div>
 </div>
 
 <script>
-let currentData = [];
-function getPwd() { return document.getElementById('pwdInput').value; }
+(function () {
+  'use strict';
 
-function loadData() {
-  fetch('/api/records?pwd=' + encodeURIComponent(getPwd()))
-    .then(r => { if (!r.ok) throw new Error('密码错误或无权限'); return r.json(); })
-    .then(data => {
-      currentData = data;
-      document.getElementById('pwdBar').style.display = 'none';
-      document.getElementById('main').style.display = 'block';
-      renderStats(); renderTable();
-    })
-    .catch(e => alert(e.message));
-}
+  var API_BASE = '';
+  var CODE_KEY = 'hearing_research_code';
+  var SAVED_KEY = 'hearing_data_saved';
+  var PRETEST_KEY = 'hearing_pretest_completed';
+  var LOCAL_CODES_KEY = 'hearing_used_codes';
+  var researchCode = null;
 
-function renderStats() {
-  const total = currentData.length;
-  const withReport = currentData.filter(r => r.report).length;
-  const saved = currentData.filter(r => r.savedByUser).length;
-  const pretestDone = currentData.filter(r => r.pretestCompleted).length;
-  const codes = new Set(currentData.map(r => r.researchCode).filter(c => c));
-  document.getElementById('stats').innerHTML =
-    `<div class="stat"><div class="k">总记录</div><div class="v">${total}</div></div>
-     <div class="stat"><div class="k">独立编码</div><div class="v">${codes.size}</div></div>
-     <div class="stat"><div class="k">前测完成</div><div class="v">${pretestDone}</div></div>
-     <div class="stat"><div class="k">已完成报告</div><div class="v">${withReport}</div></div>
-     <div class="stat"><div class="k">用户已保存</div><div class="v">${saved}</div></div>`;
-}
+  function getSavedCode() { try { return localStorage.getItem(CODE_KEY); } catch (e) { return null; } }
+  function saveCode(code) { try { localStorage.setItem(CODE_KEY, code); } catch (e) {} }
+  function isSaved() { try { return localStorage.getItem(SAVED_KEY) === 'true'; } catch (e) { return false; } }
+  function markSaved() { try { localStorage.setItem(SAVED_KEY, 'true'); } catch (e) {} }
+  function isPretestDone() { try { return localStorage.getItem(PRETEST_KEY) === 'true'; } catch (e) { return false; } }
+  function markPretestDone() { try { localStorage.setItem(PRETEST_KEY, 'true'); } catch (e) {} }
 
-function renderTable() {
-  if (!currentData.length) { document.getElementById('tableWrap').innerHTML = '<div class="empty">暂无数据</div>'; return; }
-  let html = `<table><thead><tr>
-    <th>研究编码</th><th>提交时间</th><th>前测</th><th>保存状态</th><th>听力年龄</th><th>实际年龄</th><th>最高频率</th><th>IP</th>
-  </tr></thead><tbody>`;
-  currentData.slice().reverse().forEach(r => {
-    const savedText = r.savedByUser ? '✓ 已保存' : '未保存';
-    const savedClass = r.savedByUser ? 'saved' : 'unsaved';
-    const pretestText = r.pretestCompleted ? '✓ 已完成' : '未完成';
-    const pretestClass = r.pretestCompleted ? 'saved' : 'unsaved';
-    html += `<tr>
-      <td class="code-cell">${r.researchCode || '—'}</td>
-      <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '—'}</td>
-      <td><span class="tag ${pretestClass}">${pretestText}</span></td>
-      <td><span class="tag ${savedClass}">${savedText}</span></td>
-      <td>${r.displayHearingAge || '—'}</td>
-      <td>${r.userAge || '—'}</td>
-      <td>${r.maxFreq ? r.maxFreq + ' Hz' : '—'}</td>
-      <td style="font-size:10px;color:#64748b;">${r.ip || '—'}</td>
-    </tr>`;
+  function generateLocalCode() {
+    var used = [];
+    try { used = JSON.parse(localStorage.getItem(LOCAL_CODES_KEY) || '[]'); } catch (e) {}
+    var code = null;
+    for (var i = 0; i < 5000; i++) {
+      var c = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+      if (used.indexOf(c) < 0) { code = c; break; }
+    }
+    if (!code) {
+      for (var j = 0; j < 10000; j++) {
+        var cc = String(j).padStart(4, '0');
+        if (used.indexOf(cc) < 0) { code = cc; break; }
+      }
+    }
+    if (code) {
+      used.push(code);
+      try { localStorage.setItem(LOCAL_CODES_KEY, JSON.stringify(used)); } catch (e) {}
+    }
+    return code;
+  }
+
+  function allocateCode(callback) {
+    fetch(API_BASE + '/api/allocate-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    .then(function (r) { if (!r.ok) throw new Error('服务器返回错误'); return r.json(); })
+    .then(function (data) { if (data && data.code && /^\d{4}$/.test(data.code)) { callback(data.code, 'server'); } else { throw new Error('返回格式异常'); } })
+    .catch(function (err) {
+      console.warn('服务器分配失败，使用本地生成', err);
+      var local = generateLocalCode();
+      if (local) { callback(local, 'local'); } else { callback(null, 'failed'); }
+    });
+  }
+
+  function hideAllGates() {
+    ['welcomeGate', 'codeGate', 'pretestGate', 'mainApp'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
+
+  function showPretestGate(code) {
+    researchCode = code;
+    hideAllGates();
+    var pg = document.getElementById('pretestGate');
+    if (pg) pg.style.display = 'block';
+    var pc = document.getElementById('pretestCodeDisplay');
+    if (pc) pc.textContent = code;
+    loadPretestIframe();
+    window.scrollTo({ top: 0 });
+  }
+
+  function showMainApp(code) {
+    researchCode = code;
+    hideAllGates();
+    var main = document.getElementById('mainApp');
+    if (main) main.style.display = 'block';
+    var fc = document.getElementById('finishCode');
+    if (fc) fc.textContent = code;
+    var pc = document.getElementById('postTestCode');
+    if (pc) pc.textContent = code;
+    window.scrollTo({ top: 0 });
+
+    if (isSaved()) {
+      var saveBtn = document.getElementById('saveDataBtn');
+      if (saveBtn) {
+        saveBtn.textContent = '✓ 数据已保存（第 1 步）';
+        saveBtn.classList.add('success');
+        saveBtn.disabled = true;
+      }
+      var saveTip = document.getElementById('saveTip');
+      if (saveTip) saveTip.classList.add('show');
+      updateWarnBarToSaved();
+    }
+  }
+
+  function showCodeGate(forceNew) {
+    hideAllGates();
+    var cg = document.getElementById('codeGate');
+    if (cg) cg.style.display = 'block';
+    window.scrollTo({ top: 0 });
+
+    var displayBox = document.getElementById('codeDisplayBox');
+    var codeValue = document.getElementById('codeValue');
+    var codeStatus = document.getElementById('codeStatus');
+    var confirmBtn = document.getElementById('codeConfirmBtn');
+
+    if (!forceNew) {
+      var existing = getSavedCode();
+      if (existing && /^\d{4}$/.test(existing)) {
+        if (displayBox) displayBox.classList.remove('loading');
+        if (codeValue) codeValue.textContent = existing;
+        if (codeStatus) codeStatus.textContent = '这是您之前保存的编码';
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '继续使用此编码 →'; }
+        return;
+      }
+    }
+
+    if (displayBox) displayBox.classList.add('loading');
+    if (codeValue) codeValue.textContent = '— — — —';
+    if (codeStatus) codeStatus.textContent = '正在为您分配编码…';
+    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '正在分配…'; }
+
+    allocateCode(function (code, source) {
+      if (!code) {
+        if (codeStatus) codeStatus.textContent = '分配失败，请刷新页面重试';
+        if (confirmBtn) confirmBtn.textContent = '分配失败';
+        return;
+      }
+      if (displayBox) displayBox.classList.remove('loading');
+      if (codeValue) codeValue.textContent = code;
+      if (codeStatus) codeStatus.textContent = source === 'server' ? '✓ 编码已分配（来自服务器）' : '✓ 编码已分配（本地生成）';
+      if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '我已记住，开始前测 →'; confirmBtn.dataset.code = code; }
+    });
+  }
+
+  function enterApp(code) {
+    researchCode = code;
+    if (!isPretestDone()) { showPretestGate(code); return; }
+    showMainApp(code);
+  }
+
+  var pretestLoaded = false;
+  function loadPretestIframe() {
+    if (pretestLoaded) return;
+    var container = document.getElementById('pretestContainer');
+    if (!container) return;
+    pretestLoaded = true;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://v.wjx.cn/handler/jqemed.ashx?activity=r1amkEK&width=750&source=iframe';
+    script.async = true;
+    container.appendChild(script);
+  }
+
+  function updateWarnBarToSaved() {
+    var bar = document.getElementById('finishWarnBar');
+    if (!bar) return;
+    bar.style.background = '#065f46';
+    bar.style.borderColor = '#10b981';
+    bar.style.color = '#6ee7b7';
+    bar.innerHTML = '✅ <b>数据已保存！</b>现在可以点击「📝 进入后测问卷（第 2 步）」继续了。';
+  }
+
+  var currentRecord = null;
+
+  function submitRecord(record) {
+    currentRecord = record;
+    fetch(API_BASE + '/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) })
+    .then(function (r) { return r.json(); })
+    .then(function (data) { console.log('✓ 已提交，服务器累计 ' + data.total + ' 条'); })
+    .catch(function (err) { console.warn('提交失败（不影响使用）', err); });
+  }
+
+  function updateRecordOnServer(patch) {
+    if (!currentRecord) return;
+    var merged = Object.assign({}, currentRecord, patch);
+    currentRecord = merged;
+    fetch(API_BASE + '/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(merged) }).catch(function () {});
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function show(el) { el.classList.remove('hidden'); }
+  function hide(el) { el.classList.add('hidden'); }
+
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  var tabPanels = document.querySelectorAll('.tab-panel');
+
+  function switchTab(tabName) {
+    tabBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === tabName); });
+    tabPanels.forEach(function (p) { p.classList.toggle('active', p.id === 'tab-' + tabName); });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tabName === 'cochlea' && typeof window.__onCochleaTabShow === 'function') { setTimeout(window.__onCochleaTabShow, 60); }
+    if (tabName === 'report' && typeof window.__resizeMiniCochlea === 'function') { setTimeout(window.__resizeMiniCochlea, 60); }
+  }
+
+  tabBtns.forEach(function (btn) { btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-tab')); }); });
+
+  var BASELINE_20 = { 8000: 5, 9000: 7, 10000: 9, 11200: 12, 12500: 16, 14000: 20, 16000: 26, 18000: 34, 20000: 42 };
+  var AGE_CORRECTION_POINTS = [
+    { age: 22, vals: [0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    { age: 30, vals: [3, 3, 4, 4, 5, 5, 6, 7, 8] },
+    { age: 40, vals: [6, 6, 7, 8, 9, 11, 13, 16, 19] },
+    { age: 50, vals: [12, 12, 14, 16, 18, 22, 27, 33, 39] },
+    { age: 60, vals: [19, 20, 22, 25, 28, 34, 42, 52, 62] },
+    { age: 70, vals: [27, 28, 31, 35, 39, 47, 58, 71, 85] },
+    { age: 80, vals: [36, 38, 42, 47, 52, 62, 76, 93, 110] }
+  ];
+
+  function getAgeCorrection(age, freqIndex) {
+    if (age <= 22) return 0;
+    var last = AGE_CORRECTION_POINTS[AGE_CORRECTION_POINTS.length - 1];
+    if (age >= last.age) return last.vals[freqIndex];
+    for (var i = 0; i < AGE_CORRECTION_POINTS.length - 1; i++) {
+      var a1 = AGE_CORRECTION_POINTS[i].age;
+      var a2 = AGE_CORRECTION_POINTS[i+1].age;
+      if (age >= a1 && age <= a2) {
+        var t = (age - a1) / (a2 - a1);
+        return AGE_CORRECTION_POINTS[i].vals[freqIndex] * (1 - t) + AGE_CORRECTION_POINTS[i+1].vals[freqIndex] * t;
+      }
+    }
+    return 0;
+  }
+
+  function calcCauseSplit(responses, userAge) {
+    var totalAge = 0, totalNoise = 0, count = 0;
+    var details = [];
+    for (var i = 0; i < responses.length; i++) {
+      var r = responses[i];
+      var baseline = BASELINE_20[r.freq] || 30;
+      var measuredOffset = r.heard ? 0 : 40;
+      var ageOffset = getAgeCorrection(userAge, i);
+      var noiseOffset = Math.max(0, measuredOffset - ageOffset);
+      totalAge += ageOffset;
+      totalNoise += noiseOffset;
+      count++;
+      details.push({ freq: r.freq, baseline: baseline, measured: measuredOffset, age: ageOffset, noise: noiseOffset });
+    }
+    var avgAge = count > 0 ? totalAge / count : 0;
+    var avgNoise = count > 0 ? totalNoise / count : 0;
+    var total = avgAge + avgNoise;
+    var noiseRatio = total > 0 ? avgNoise / total : 0;
+    return {
+      avgAgeOffset: Math.round(avgAge * 10) / 10,
+      avgNoiseOffset: Math.round(avgNoise * 10) / 10,
+      noiseRatio: Math.round(noiseRatio * 100),
+      details: details
+    };
+  }
+
+  var FREQS = [8000, 10000, 12000, 14000, 16000, 17000, 18000, 19000, 20000];
+  var FREQ_LABELS = ['8k', '10k', '12k', '14k', '16k', '17k', '18k', '19k', '20k'];
+  var CANDIDATE_AGES = [18, 19, 20, 22, 25, 28, 33, 38, 43, 48, 53];
+
+  var testState = { idx: 0, responses: [], maxHeard: null, userAge: 22, matchedAge: null, waiting: false, running: false };
+  var audioCtx = null, currentOsc = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, durationMs) {
+    initAudio();
+    stopTone();
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    var now = audioCtx.currentTime;
+    var vol = 0.08, dur = durationMs / 1000;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.05);
+    gain.gain.setValueAtTime(vol, now + dur - 0.05);
+    gain.gain.linearRampToValueAtTime(0, now + dur);
+    osc.start(now);
+    osc.stop(now + dur);
+    currentOsc = osc;
+  }
+
+  function stopTone() {
+    if (currentOsc) { try { currentOsc.stop(); } catch (e) {} currentOsc = null; }
+  }
+
+  var testIntro = $('testIntro');
+  var testRunning = $('testRunning');
+  var testResult = $('testResult');
+  var freqNum = $('freqNum');
+  var freqHint = $('freqHint');
+  var progressFill = $('progressFill');
+  var curIdxEl = $('curIdx');
+  var heardBtn = $('heardBtn');
+  var notHeardBtn = $('notHeardBtn');
+  var startTestBtn = $('startTestBtn');
+  var ageInput = $('ageInput');
+
+  function updateProgress() {
+    progressFill.style.width = (testState.idx / FREQS.length) * 100 + '%';
+    curIdxEl.textContent = Math.min(testState.idx + 1, FREQS.length);
+  }
+
+  function startTest() {
+    var age = Number(ageInput.value);
+    if (!age || age < 8 || age > 80) { alert('请输入 8~80 之间的年龄'); return; }
+    testState.userAge = age;
+    initAudio();
+    testState.idx = 0;
+    testState.responses = [];
+    testState.maxHeard = null;
+    testState.matchedAge = null;
+    testState.running = true;
+    hide(testIntro);
+    hide(testResult);
+    show(testRunning);
+    updateProgress();
+    playNextFreq();
+  }
+
+  function playNextFreq() {
+    if (!testState.running) return;
+    if (testState.idx >= FREQS.length) { finishTest(); return; }
+    var freq = FREQS[testState.idx];
+    freqNum.textContent = freq;
+    freqHint.textContent = '正在播放…请仔细听';
+    updateProgress();
+    heardBtn.disabled = true;
+    notHeardBtn.disabled = true;
+    testState.waiting = false;
+    playTone(freq, 2500);
+    setTimeout(function () {
+      if (!testState.running) return;
+      freqHint.textContent = '你听到了吗？';
+      heardBtn.disabled = false;
+      notHeardBtn.disabled = false;
+      testState.waiting = true;
+    }, 2500);
+  }
+
+  function handleAnswer(heard) {
+    if (!testState.waiting) return;
+    testState.waiting = false;
+    heardBtn.disabled = true;
+    notHeardBtn.disabled = true;
+    stopTone();
+    var freq = FREQS[testState.idx];
+    testState.responses.push({ freq: freq, heard: heard });
+    if (heard && (testState.maxHeard === null || freq > testState.maxHeard)) {
+      testState.maxHeard = freq;
+    }
+    testState.idx++;
+    updateProgress();
+    setTimeout(function () { playNextFreq(); }, 400);
+  }
+
+  heardBtn.addEventListener('click', function () { handleAnswer(true); });
+  notHeardBtn.addEventListener('click', function () { handleAnswer(false); });
+  startTestBtn.addEventListener('click', startTest);
+
+  // 修复：采用最高频率直接查表，确保频率与年龄严格对应
+  function findBestMatchAge(responses, userAge) {
+    var maxFreq = null;
+    for (var i = 0; i < responses.length; i++) {
+      if (responses[i].heard) {
+        maxFreq = responses[i].freq;
+      }
+    }
+    var freqToAge = {
+      20000: 18, 19000: 22, 18000: 25, 17000: 28,
+      16000: 33, 14000: 38, 12000: 43, 10000: 48, 8000: 53
+    };
+    if (maxFreq === null) return { age: 55, score: 1 };
+    return { age: freqToAge[maxFreq] || 55, score: 1 };
+  }
+
+  function finishTest() {
+    testState.running = false;
+    stopTone();
+    var m = findBestMatchAge(testState.responses, testState.userAge);
+    testState.matchedAge = m.age;
+    hide(testRunning);
+    show(testResult);
+    requestAnimationFrame(function () {
+      drawThresholdChart($('chartCanvas'), testState.responses, testState.userAge, testState.matchedAge);
+      renderTestResult();
+    });
+  }
+
+  function renderTestResult() {
+    var matchedAge = testState.matchedAge;
+    var userAge = testState.userAge;
+    var displayAge = Math.max(matchedAge, userAge);
+
+    $('ageBig').innerHTML = displayAge + ' <span>岁</span>';
+    var diff = displayAge - userAge;
+    var diffEl = $('ageDiff');
+
+    if (matchedAge < userAge) {
+      diffEl.className = 'diff same';
+      diffEl.textContent = '本次未检出高频听阈偏移（实测听力优于同龄人）';
+    } else if (diff === 0) {
+      diffEl.className = 'diff same';
+      diffEl.textContent = '与实际年龄一致';
+    } else {
+      diffEl.className = 'diff older';
+      diffEl.textContent = '比实际年龄（' + userAge + ' 岁）大 ' + diff + ' 岁，建议关注听力保护';
+    }
+
+    var html = '';
+    for (var i = 0; i < testState.responses.length; i++) {
+      var r = testState.responses[i];
+      html += '<div class="freq-chip ' + (r.heard ? 'yes' : 'no') + '"><span class="f">' + FREQ_LABELS[i] + ' Hz</span><span class="s">' + (r.heard ? '听到' : '未听到') + '</span></div>';
+    }
+    $('freqList').innerHTML = html;
+
+    var split = calcCauseSplit(testState.responses, testState.userAge);
+    window.__causeSplit = split;
+    $('ageOffsetNum').textContent = split.avgAgeOffset;
+    $('noiseOffsetNum').textContent = split.avgNoiseOffset;
+    $('noiseRatioNum').textContent = split.noiseRatio;
+
+    window.__hearingResult = {
+      maxFreq: testState.maxHeard,
+      hearingAge: displayAge,
+      rawHearingAge: matchedAge,
+      userAge: testState.userAge,
+      responses: testState.responses,
+      causeSplit: split
+    };
+
+    submitRecord({
+      id: Date.now(),
+      researchCode: researchCode,
+      pretestCompleted: isPretestDone(),
+      timestamp: new Date().toISOString(),
+      userAge: userAge,
+      maxFreq: testState.maxHeard,
+      rawMatchedAge: matchedAge,
+      displayHearingAge: displayAge,
+      responses: testState.responses,
+      causeSplit: split,
+      report: null,
+      savedByUser: false
+    });
+
+    updateInheritBanner();
+  }
+
+  function drawThresholdChart(canvas, responses, userAge, matchedAge) {
+    var wrap = canvas.parentElement;
+    var cssW = Math.max(320, wrap.clientWidth - 16);
+    var cssH = 320;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var padL = 56, padR = 22, padT = 40, padB = 56;
+    var plotW = cssW - padL - padR;
+    var plotH = cssH - padT - padB;
+    var plotTop = padT, plotBottom = padT + plotH;
+
+    var logMin = Math.log10(7000), logMax = Math.log10(21000);
+    function xFor(f) { return padL + ((Math.log10(f) - logMin) / (logMax - logMin)) * plotW; }
+    function yFor(v) { return plotBottom - v * plotH; }
+
+    ctx.fillStyle = '#0b1120';
+    ctx.fillRect(padL, plotTop, plotW, plotH);
+
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    [0, 0.5, 1].forEach(function (v) {
+      var y = yFor(v);
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    });
+    FREQS.forEach(function (f) {
+      var x = xFor(f);
+      ctx.beginPath(); ctx.moveTo(x, plotTop); ctx.lineTo(x, plotBottom); ctx.stroke();
+    });
+
+    CANDIDATE_AGES.forEach(function (age) {
+      if (age === userAge || age === matchedAge) return;
+      drawStepCurve(ctx, getRefPattern(age), xFor, yFor, padL, plotW, 'rgba(148,163,184,0.12)', 1, [4, 4]);
+    });
+    drawStepCurve(ctx, getRefPattern(userAge), xFor, yFor, padL, plotW, 'rgba(96,165,250,0.95)', 2.5, []);
+    if (matchedAge !== userAge) {
+      drawStepCurve(ctx, getRefPattern(matchedAge), xFor, yFor, padL, plotW, 'rgba(167,139,250,0.85)', 2, [6, 4]);
+    }
+
+    var pts = responses.map(function (r) {
+      return { x: xFor(r.freq), y: yFor(r.heard ? 1 : 0), heard: r.heard };
+    });
+    ctx.beginPath();
+    pts.forEach(function (p, i) {
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    });
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    pts.forEach(function (p) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = p.heard ? '#4ade80' : '#ef4444';
+      ctx.fill();
+      ctx.strokeStyle = '#0b1120';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    ctx.font = '11px system-ui, "PingFang SC", sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    FREQS.forEach(function (f, i) { ctx.fillText(FREQ_LABELS[i], xFor(f), plotBottom + 7); });
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('听到', padL - 6, yFor(1));
+    ctx.fillText('没听到', padL - 6, yFor(0));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText('频率 (Hz)', padL + plotW / 2, plotBottom + 28);
+
+    ctx.font = '10px system-ui, "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    var lx = padL, ly = 14;
+    ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 16, ly); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.fillText('你的曲线', lx + 22, ly);
+    lx += 86;
+    ctx.strokeStyle = 'rgba(96,165,250,0.95)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 16, ly); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.fillText('你的年龄标准', lx + 22, ly);
+  }
+
+  function drawStepCurve(ctx, pattern, xFor, yFor, padL, plotW, color, lineWidth, dash) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.setLineDash(dash);
+    var lastV = pattern[0];
+    ctx.moveTo(padL, yFor(lastV));
+    for (var i = 0; i < FREQS.length; i++) {
+      var x = xFor(FREQS[i]);
+      if (pattern[i] !== lastV) {
+        ctx.lineTo(x, yFor(lastV));
+        ctx.lineTo(x, yFor(pattern[i]));
+        lastV = pattern[i];
+      }
+      ctx.lineTo(x, yFor(pattern[i]));
+    }
+    ctx.lineTo(padL + plotW, yFor(lastV));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function getRefPattern(age) {
+    var maxF = 20000;
+    if (age >= 53) maxF = 8000;
+    else if (age >= 48) maxF = 10000;
+    else if (age >= 43) maxF = 12000;
+    else if (age >= 38) maxF = 14000;
+    else if (age >= 33) maxF = 16000;
+    else if (age >= 28) maxF = 17000;
+    else if (age >= 25) maxF = 18000;
+    else if (age >= 22) maxF = 19000;
+    return FREQS.map(function (f) { return f <= maxF ? 1 : 0; });
+  }
+
+  var inheritedMaxFreq = null;
+  var inheritedHearingAge = null;
+
+  function updateInheritBanner() {
+    var r = window.__hearingResult;
+    if (!r) return;
+    inheritedMaxFreq = r.maxFreq;
+    inheritedHearingAge = r.hearingAge;
+    $('inheritFreq').textContent = r.maxFreq ? r.maxFreq + ' Hz' : '未检测到';
+    $('inheritAge').textContent = r.hearingAge ? '约 ' + r.hearingAge + ' 岁' : '—';
+    $('inheritUserAge').textContent = r.userAge + ' 岁';
+    $('reportAge').textContent = r.userAge + ' 岁';
+    show($('inheritBanner'));
+  }
+
+  $('gotoReportBtn').addEventListener('click', function () { switchTab('report'); });
+
+  var state = { age: 22, ageStart: 18, session: 60, daily: 3, volume: 60, scenes: new Set(['commute']), type: 'inEar' };
+  var sessionSlider = $('sessionSlider'), dailySlider = $('dailySlider'), volumeSlider = $('volumeSlider');
+  var sessionVal = $('sessionVal'), dailyVal = $('dailyVal'), volumeVal = $('volumeVal');
+  var sceneGroup = $('sceneGroup'), typeGroup = $('typeGroup'), ageStartGroup = $('ageStartGroup');
+  var reportForm = $('reportForm'), reportResult = $('reportResult'), riskBadge = $('riskBadge');
+  var adviceKnowledge = $('adviceKnowledge'), adviceAttitude = $('adviceAttitude'), adviceBehavior = $('adviceBehavior');
+  var radar5Canvas = $('radar5Canvas'), pieCanvas = $('pieCanvas'), dimDefList5 = $('radar5DefList'), logicContent = $('logicContent');
+
+  var SCENE_RISK = { commute:1.25, work:1.00, sleep:0.90, sport:1.15, entertain:1.10 };
+  var TYPE_RISK  = { inEar:1.30, overEar:1.00, bone:1.10 };
+  var SCENE_NAME = { commute:'通勤', work:'学习/工作', sleep:'睡眠', sport:'运动', entertain:'娱乐' };
+  var TYPE_NAME  = { inEar:'入耳式', overEar:'头戴式', bone:'骨传导/开放式' };
+
+  var RADAR5_DEFS = [
+    { key:'hearingRange', name:'听觉范围', def:'你最高能听到的频率，对应耳蜗底回（高频）毛细胞的存活状态。', calc:'得分 = 最高可闻频率 / 20000 × 100。' },
+    { key:'noiseTolerance', name:'噪声耐受', def:'你听力年龄与实际年龄的落差，反映长期暴露后的累积损伤。', calc:'得分 = 100 − (听力年龄 − 实际年龄) × 4，限制在 5~100 之间。' },
+    { key:'volumeCtrl', name:'音量控制', def:'你日常使用耳机的音量档位，占设备最大音量的百分比。', calc:'得分 = 100 − (音量% − 40) × 1.5，限制在 5~100 之间。' },
+    { key:'timeCtrl', name:'时长控制', def:'单次连续佩戴与全天累计使用时长的综合评分。', calc:'得分 = 100 − (单次分钟/480 + 全天小时/16) × 50，限制在 5~100 之间。' },
+    { key:'sceneSafe', name:'场景安全', def:'主要使用场景对听力风险的影响。', calc:'得分 = 100 − (场景风险系数均值 − 0.9) × 90，限制在 5~100 之间。' }
+  ];
+
+  function syncSliders() {
+    state.session = Number(sessionSlider.value); state.daily = Number(dailySlider.value); state.volume = Number(volumeSlider.value);
+    sessionVal.textContent = state.session + ' 分钟'; dailyVal.textContent = state.daily + ' 小时'; volumeVal.textContent = state.volume + '%';
+    updateLogicPanel();
+  }
+  sessionSlider.addEventListener('input', syncSliders); dailySlider.addEventListener('input', syncSliders); volumeSlider.addEventListener('input', syncSliders);
+
+  sceneGroup.addEventListener('click', function (e) {
+    var btn = e.target.closest('button'); if (!btn) return; var s = btn.getAttribute('data-scene');
+    if (state.scenes.has(s)) { state.scenes.delete(s); btn.classList.remove('active'); }
+    else { state.scenes.add(s); btn.classList.add('active'); }
+    updateLogicPanel();
   });
-  html += '</tbody></table>';
-  document.getElementById('tableWrap').innerHTML = html;
-}
 
-function exportJSON() {
-  if (!currentData.length) return alert('暂无数据');
-  const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
-  download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.json');
-}
-
-function exportCSV() {
-  if (!currentData.length) return alert('暂无数据');
-  const rows = [['研究编码','提交时间','前测完成','保存状态','听力年龄','实际年龄','最高频率','IP']];
-  currentData.forEach(r => {
-    rows.push([r.researchCode || '', r.timestamp || '', r.pretestCompleted ? '已完成' : '未完成',
-      r.savedByUser ? '已保存' : '未保存', r.displayHearingAge || '', r.userAge || '', r.maxFreq || '', r.ip || '']);
+  typeGroup.addEventListener('click', function (e) {
+    var btn = e.target.closest('button'); if (!btn) return;
+    var all = typeGroup.querySelectorAll('button'); for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
+    btn.classList.add('active'); state.type = btn.getAttribute('data-type');
+    updateLogicPanel();
   });
-  const csv = rows.map(row => row.map(cell => {
-    const s = String(cell == null ? '' : cell);
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.csv');
-}
 
-function download(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  ageStartGroup.addEventListener('click', function (e) {
+    var btn = e.target.closest('button'); if (!btn) return;
+    var all = ageStartGroup.querySelectorAll('button'); for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
+    btn.classList.add('active'); state.ageStart = Number(btn.getAttribute('data-start'));
+  });
+
+  function sceneTypeInteraction() {
+    var m = 1.0; var noisy = ['commute', 'sport', 'entertain']; var hasNoisy = false;
+    state.scenes.forEach(function (s) { if (noisy.indexOf(s) >= 0) hasNoisy = true; });
+    if (hasNoisy && state.type === 'bone') m *= 1.20;
+    if (hasNoisy && state.type === 'overEar') m *= 1.10;
+    if (state.scenes.has('sleep') && state.type === 'inEar') m *= 1.15;
+    return m;
+  }
+
+  function calcRiskScores() {
+    var volScore = state.volume <= 60 ? (state.volume / 60) * 30 : 30 + ((state.volume - 60) / 40) * 70;
+    var sessionScore = state.session <= 60 ? (state.session / 60) * 30 : 30 + Math.min(((state.session - 60) / 180) * 70, 70);
+    var dailyScore = state.daily <= 3 ? (state.daily / 3) * 30 : 30 + Math.min(((state.daily - 3) / 9) * 70, 70);
+    var timeScore = sessionScore * 0.5 + dailyScore * 0.5;
+    var sum = 0, cnt = 0;
+    state.scenes.forEach(function (s) { sum += (SCENE_RISK[s] || 1.0); cnt++; });
+    var avg = cnt > 0 ? sum / cnt : 1.0;
+    var sceneScore = ((avg - 0.85) / 0.45) * 100;
+    var typeScore = ((TYPE_RISK[state.type] - 0.9) / 0.5) * 100;
+
+    var hearingMod = 1.0;
+    if (inheritedMaxFreq !== null && inheritedMaxFreq !== undefined) {
+      if (inheritedMaxFreq <= 8000) hearingMod = 1.25;
+      else if (inheritedMaxFreq <= 10000) hearingMod = 1.20;
+      else if (inheritedMaxFreq <= 12000) hearingMod = 1.15;
+      else if (inheritedMaxFreq <= 14000) hearingMod = 1.10;
+      else if (inheritedMaxFreq <= 16000) hearingMod = 1.05;
+    }
+    if (inheritedHearingAge && testState.userAge) {
+      var ageDiff = inheritedHearingAge - testState.userAge;
+      if (ageDiff >= 15) hearingMod *= 1.15;
+      else if (ageDiff >= 8) hearingMod *= 1.10;
+    }
+
+    return {
+      volume: Math.round(Math.min(Math.max(volScore * hearingMod, 0), 100)),
+      time: Math.round(Math.min(Math.max(timeScore * hearingMod, 0), 100)),
+      scene: Math.round(Math.min(Math.max(sceneScore, 5), 100)),
+      type: Math.round(Math.min(Math.max(typeScore, 5), 100))
+    };
+  }
+
+  function calcOverall(scores) {
+    var w = { volume: 0.40, time: 0.30, scene: 0.15, type: 0.15 };
+    var v = scores.volume * w.volume + scores.time * w.time + scores.scene * w.scene + scores.type * w.type;
+    v *= sceneTypeInteraction();
+    if (state.volume >= 80 && state.session >= 120) v = Math.max(v, 75);
+    if (state.volume >= 90) v = Math.max(v, 85);
+    return Math.round(Math.min(v, 100));
+  }
+
+  function getRiskLevel(score) {
+    if (score < 30) return { label: '低风险', cls: 'risk-low' };
+    if (score < 55) return { label: '中风险', cls: 'risk-mid' };
+    if (score < 80) return { label: '高风险', cls: 'risk-high' };
+    return { label: '极高风险', cls: 'risk-extreme' };
+  }
+
+  function calcHearingRiskFromAgeDiff() {
+    var r = window.__hearingResult;
+    if (!r || r.hearingAge === null || r.userAge === null) {
+      return { hasResult: false, level: '未测试', levelCls: 'risk-low', diff: null, text: '请先完成听力测试，才能得到听力风险等级与同龄人百分位。' };
+    }
+    var diff = r.hearingAge - r.userAge;
+    if (diff <= 0) {
+      return { hasResult: true, level: '未检出偏移', levelCls: 'risk-low', diff: diff, text: '本次<b>未检出高频听阈偏移</b>。你的高频听觉状态在正常范围内，继续保持目前的用耳习惯。' };
+    } else if (diff <= 5) {
+      var pct1 = Math.round(50 - (diff / 5) * 15);
+      return { hasResult: true, level: '注意', levelCls: 'risk-mid', diff: diff, text: '高频听觉状态约<b>处于同龄人前 ' + pct1 + '%</b>（35%~50% 区间），略低于中位水平，建议开始关注听力保护。' };
+    } else if (diff <= 15) {
+      var pct2 = Math.round(35 - ((diff - 5) / 10) * 20);
+      return { hasResult: true, level: '警告', levelCls: 'risk-high', diff: diff, text: '高频听觉状态约<b>处于同龄人前 ' + pct2 + '%</b>（15%~35% 区间），明显低于中位水平，建议尽快调整用耳习惯并考虑就医评估。' };
+    } else {
+      return { hasResult: true, level: '危险', levelCls: 'risk-extreme', diff: diff, text: '高频听觉状态约<b>处于同龄人后 15%</b>，明显低于多数同龄人，强烈建议尽快到耳鼻喉科做纯音测听。' };
+    }
+  }
+
+  function updateLogicPanel() {
+    if (!logicContent) return;
+    var html = '';
+    html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">🔊 音量</p><p>当前：<b>' + state.volume + '%</b> ｜ 阈值：安全 ≤60% ｜ 警告 60~80% ｜ 危险 >80%</p></div>';
+    html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">⏱️ 单次时长</p><p>当前：<b>' + state.session + ' 分钟</b> ｜ 阈值：安全 ≤60 ｜ 警告 60~120 ｜ 危险 >120</p></div>';
+    html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">📅 全天时长</p><p>当前：<b>' + state.daily + ' 小时</b> ｜ 阈值：安全 ≤3 ｜ 警告 3~5 ｜ 危险 >5</p></div>';
+    var sceneList = []; state.scenes.forEach(function (s) { sceneList.push(SCENE_NAME[s]); });
+    html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">📍 场景</p><p>当前：<b>' + (sceneList.length ? sceneList.join('、') : '未选择') + '</b></p></div>';
+    html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">🎧 耳机类型</p><p>当前：<b>' + TYPE_NAME[state.type] + '</b></p></div>';
+    logicContent.innerHTML = html;
+  }
+
+  function buildAdvice(scores, overall) {
+    var knowledge = [], attitude = [], behavior = [];
+    knowledge.push({ level:'ok', text:'📖 <b>WHO 60-60-60 原则</b>：音量 ≤60%，单次 ≤60 分钟，环境噪声 ≤60 分贝。' });
+    knowledge.push({ level:'ok', text:'📖 <b>NIOSH 85 dBA / 8h 标准</b>：每日噪声暴露不应超过 85 dBA（8 小时 TWA）。声级每 +3 dB，安全时长减半。' });
+    knowledge.push({ level:'ok', text:'📖 <b>WHO《世界听力报告》(2021) 儿童限值</b>：WHO/ITU H.870 Mode 2——每周 ≤40 小时、75 dBA。' });
+    knowledge.push({ level:'ok', text:'📖 <b>毛细胞不可再生</b>：内耳柯蒂器毛细胞一旦死亡无法再生，听力损伤累积且不可逆。' });
+    if (state.volume > 60) {
+      knowledge.push({ level:'warn', text:'📖 <b>音量与声压</b>：60% 音量通常对应约 85 dBA 安全阈值。你当前 <b>' + state.volume + '%</b>，已超过安全线。' });
+    }
+    if (overall >= 55) {
+      attitude.push({ level:'danger', text:'💭 <b>用耳习惯风险</b>：综合用耳习惯评分 <b>' + overall + '</b>，处于较高水平，建议尽快调整。' });
+    } else if (overall >= 30) {
+      attitude.push({ level:'warn', text:'💭 <b>用耳习惯风险</b>：综合用耳习惯评分 <b>' + overall + '</b>，中等水平。' });
+    } else {
+      attitude.push({ level:'ok', text:'💭 <b>用耳习惯风险</b>：综合用耳习惯评分 <b>' + overall + '</b>，低水平。' });
+    }
+    if (inheritedHearingAge && testState.userAge) {
+      var ageDiff = inheritedHearingAge - testState.userAge;
+      if (ageDiff >= 8) { attitude.push({ level:'warn', text:'💭 <b>听力年龄落差</b>：听力年龄约 <b>' + inheritedHearingAge + ' 岁</b>，比实际大 <b>' + ageDiff + ' 岁</b>。' }); }
+      else if (ageDiff <= 0) { attitude.push({ level:'ok', text:'💭 <b>本次未检出高频听阈偏移</b>：听力状态在正常范围内。' }); }
+    }
+    if (window.__causeSplit && window.__causeSplit.noiseRatio >= 25) {
+      attitude.push({ level: window.__causeSplit.noiseRatio >= 50 ? 'danger' : 'warn', text:'💭 <b>噪声成因占比</b>：听阈偏移中 <b>' + window.__causeSplit.noiseRatio + '%</b> 来自噪声暴露，这部分是可逆风险。' });
+    }
+    if (state.scenes.has('sleep')) { attitude.push({ level:'warn', text:'💭 <b>睡眠用耳</b>：戴耳机入睡意味着耳朵在整个睡眠周期持续暴露。' }); }
+
+    if (state.volume > 80) { behavior.push({ level:'danger', text:'🎯 <b>音量</b>：本周内将音量降至 60% 以下。iOS：设置→声音与触感→耳机安全；Android：设置→声音→音量限制。' }); }
+    else if (state.volume > 60) { behavior.push({ level:'warn', text:'🎯 <b>音量</b>：每次使用先调到最低，再逐步调高到刚好能听清，不超过 60%。' }); }
+    else { behavior.push({ level:'ok', text:'🎯 <b>音量</b>：当前音量安全。继续保持。' }); }
+
+    if (state.session > 120) { behavior.push({ level:'danger', text:'🎯 <b>单次时长</b>：设 60 分钟定时提醒，到点摘下休息 10~15 分钟。' }); }
+    else if (state.session > 60) { behavior.push({ level:'warn', text:'🎯 <b>单次时长</b>：尝试控制在 60 分钟以内。' }); }
+    else { behavior.push({ level:'ok', text:'🎯 <b>单次时长</b>：当前在安全范围。继续每 60 分钟休息。' }); }
+
+    if (state.daily > 5) { behavior.push({ level:'danger', text:'🎯 <b>全天时长</b>：每天至少留 2 小时完全不戴耳机。' }); }
+    else if (state.daily > 3) { behavior.push({ level:'warn', text:'🎯 <b>全天时长</b>：尝试控制在 3 小时以内。' }); }
+
+    var hasNoisyScene = false; state.scenes.forEach(function (s) { if (['commute', 'sport', 'entertain'].indexOf(s) >= 0) hasNoisyScene = true; });
+    if (hasNoisyScene) { behavior.push({ level:'warn', text:'🎯 <b>嘈杂场景</b>：优先用降噪耳机，在更低音量下听清内容。' }); }
+    if (state.scenes.has('sleep')) { behavior.push({ level:'warn', text:'🎯 <b>睡眠场景</b>：设置 30~60 分钟自动关闭，或改用外放并定时关闭。' }); }
+
+    var typeAction = {
+      inEar: '🎯 <b>耳机保养</b>：入耳式耳塞套每 3 个月更换，每周用酒精棉片清洁。',
+      overEar: '🎯 <b>佩戴习惯</b>：头戴式每 60 分钟摘下透气。',
+      bone: '🎯 <b>音量控制</b>：骨传导在嘈杂环境中容易不自觉调高音量，建议控制在 60% 以下。'
+    };
+    behavior.push({ level:'ok', text: typeAction[state.type] });
+
+    if (inheritedMaxFreq !== null && inheritedMaxFreq !== undefined) {
+      var diffAge = inheritedHearingAge - testState.userAge;
+      if (inheritedMaxFreq <= 10000 || diffAge >= 15) { behavior.push({ level:'danger', text:'🎯 <b>就医建议</b>：最高可闻频率 <b>' + inheritedMaxFreq + ' Hz</b>，听力年龄比实际大 ' + diffAge + ' 岁。建议尽快到耳鼻喉科做纯音测听。' }); }
+      else if (inheritedMaxFreq <= 16000 || diffAge >= 8) { behavior.push({ level:'warn', text:'🎯 <b>定期复测</b>：建议每 6 个月复测一次，观察听力年龄变化趋势。' }); }
+    }
+    return { knowledge: knowledge, attitude: attitude, behavior: behavior };
+  }
+
+  function calcRadar5Scores() {
+    var hr = inheritedMaxFreq ? Math.min(100, (inheritedMaxFreq / 20000) * 100) : 20;
+    var nt = 50;
+    if (inheritedHearingAge && testState.userAge) { var diff = inheritedHearingAge - testState.userAge; nt = 100 - diff * 4; } else { nt = 60; }
+    nt = Math.max(5, Math.min(100, nt));
+    var vc = Math.max(5, Math.min(100, 100 - (state.volume - 40) * 1.5));
+    var tc = 100 - (state.session / 480 + state.daily / 16) * 50; tc = Math.max(5, Math.min(100, tc));
+    var sum = 0, cnt = 0; state.scenes.forEach(function (s) { sum += (SCENE_RISK[s] || 1.0); cnt++; });
+    var avgScene = cnt > 0 ? sum / cnt : 1.0; var ss = 100 - (avgScene - 0.9) * 90; ss = Math.max(5, Math.min(100, ss));
+    return { hearingRange: Math.round(hr), noiseTolerance: Math.round(nt), volumeCtrl: Math.round(vc), timeCtrl: Math.round(tc), sceneSafe: Math.round(ss) };
+  }
+
+  function drawRadar5(canvas, scores) {
+    var wrap = canvas.parentElement; var cssW = wrap.clientWidth || 320;
+    var cssSize = Math.min(Math.max(cssW - 16, 280), 420); var dpr = window.devicePixelRatio || 1;
+    canvas.width = cssSize * dpr; canvas.height = cssSize * dpr; canvas.style.width = cssSize + 'px'; canvas.style.height = cssSize + 'px';
+    var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssSize, cssSize);
+    var cx = cssSize / 2, cy = cssSize / 2 + 8, maxR = cssSize * 0.30;
+    var labels = ['听觉范围', '噪声耐受', '音量控制', '时长控制', '场景安全'];
+    var values = [scores.hearingRange, scores.noiseTolerance, scores.volumeCtrl, scores.timeCtrl, scores.sceneSafe];
+    var safeRef = [60, 70, 80, 70, 70]; var n = 5;
+
+    function polar(i, ratio) { var a = -Math.PI / 2 + (i * Math.PI * 2 / n); return { x: cx + Math.cos(a) * maxR * ratio, y: cy + Math.sin(a) * maxR * ratio }; }
+
+    ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+    for (var r = 0.25; r <= 1.0001; r += 0.25) { ctx.beginPath(); ctx.arc(cx, cy, maxR * r, 0, Math.PI * 2); ctx.stroke(); }
+    for (var i = 0; i < n; i++) {
+      var p = polar(i, 1); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y); ctx.stroke();
+      var lp = polar(i, 1.24); ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 12px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(labels[i], lp.x, lp.y);
+    }
+    function drawPolygon(data, fill, stroke, dashed) {
+      ctx.beginPath();
+      for (var i = 0; i < n; i++) { var ratio = Math.max(0, Math.min(data[i], 100)) / 100; var p = polar(i, ratio); if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); }
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (dashed) ctx.setLineDash([5, 5]); ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    }
+    drawPolygon(safeRef, 'rgba(74,222,128,0.08)', 'rgba(74,222,128,0.55)', true); drawPolygon(values, 'rgba(59,130,246,0.25)', '#3b82f6', false);
+    for (var k = 0; k < n; k++) {
+      var r2 = Math.max(0, Math.min(values[k], 100)) / 100; var pp = polar(k, r2);
+      ctx.beginPath(); ctx.arc(pp.x, pp.y, 5, 0, Math.PI * 2); ctx.fillStyle = '#60a5fa'; ctx.fill(); ctx.strokeStyle = '#1e3a5f'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.font = '11px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#3b82f6'; ctx.fillRect(10, 12, 16, 3); ctx.fillStyle = '#94a3b8'; ctx.fillText('你的听觉画像', 32, 14);
+    ctx.fillStyle = 'rgba(74,222,128,0.8)'; ctx.fillRect(10, 30, 16, 3); ctx.fillStyle = '#94a3b8'; ctx.fillText('健康参考线', 32, 32);
+  }
+
+  function renderRadar5Defs(scores) {
+    var html = '';
+    RADAR5_DEFS.forEach(function (d) { html += '<li><b>' + d.name + '</b>（当前 ' + scores[d.key] + '/100）<br><span style="color:#94a3b8;">是什么：</span>' + d.def + '<br><span style="color:#94a3b8;">分值怎么算：</span>' + d.calc + '</li>'; });
+    dimDefList5.innerHTML = html;
+  }
+
+  function drawPie(canvas, ageOffset, noiseOffset) {
+    var wrap = canvas.parentElement; var cssW = wrap.clientWidth || 260; var cssSize = Math.min(cssW, 260);
+    var dpr = window.devicePixelRatio || 1; canvas.width = cssSize * dpr; canvas.height = cssSize * dpr; canvas.style.width = cssSize + 'px'; canvas.style.height = cssSize + 'px';
+    var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssSize, cssSize);
+    var cx = cssSize / 2, cy = cssSize / 2 - 10; var r = cssSize * 0.32; var total = ageOffset + noiseOffset;
+    if (total <= 0) {
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#4ade80'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#0f172a'; ctx.fill();
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 13px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('无明显', cx, cy - 8); ctx.fillText('偏移', cx, cy + 8);
+      ctx.font = '11px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#94a3b8';
+      ctx.fillText('未检测到听阈偏移，毛细胞状态良好', cssSize / 2, cssSize - 26); return;
+    }
+    var ageRatio = ageOffset / total; var noiseRatio = noiseOffset / total; var start = -Math.PI / 2;
+    if (ageRatio > 0) { var ageEnd = start + ageRatio * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, start, ageEnd); ctx.closePath(); ctx.fillStyle = '#3b82f6'; ctx.fill(); }
+    if (noiseRatio > 0) { var noiseStart = start + ageRatio * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, noiseStart, start + Math.PI * 2); ctx.closePath(); ctx.fillStyle = '#ef4444'; ctx.fill(); }
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#0f172a'; ctx.fill();
+    ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 12px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('损伤', cx, cy - 8); ctx.fillText('来源', cx, cy + 8);
+    ctx.font = '11px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    var legendY = cssSize - 20; ctx.fillStyle = '#3b82f6'; ctx.fillRect(14, legendY - 5, 12, 10); ctx.fillStyle = '#94a3b8';
+    ctx.fillText('年龄 ' + Math.round(ageRatio * 100) + '%', 32, legendY);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(130, legendY - 5, 12, 10); ctx.fillStyle = '#94a3b8';
+    ctx.fillText('噪声 ' + Math.round(noiseRatio * 100) + '%', 148, legendY);
+  }
+
+  function estimateSurvival(db, hours, days) {
+    var leq8h = db + 10 * Math.log10(hours / 8); var doseRatio = Math.pow(2, (leq8h - 85) / 3);
+    var excess = Math.max(0, doseRatio - 1); var warning = doseRatio > 0.3 ? (doseRatio - 0.3) * 2.5 : 0;
+    var totalExcess = excess + warning; var recoveryFactor = Math.max(0.3, 1 - days / 5000);
+    var rawE = totalExcess * days * recoveryFactor * 0.005; var E = Math.log(1 + rawE) * 3;
+    var totalHealth = 0;
+    for (var i = 0; i < 120; i++) { var t = i / 119; var threshold = 0.5 + 15 * t; var damage = Math.max(0, Math.min(1, (E - threshold) / 0.5)); totalHealth += (1 - damage); }
+    return (totalHealth / 120) * 100;
+  }
+
+  function generateReport() {
+    try {
+      var scores = calcRiskScores(); var overall = calcOverall(scores); var habitRisk = getRiskLevel(overall);
+      var hearingRisk = calcHearingRiskFromAgeDiff();
+      if (hearingRisk.hasResult) { if (hearingRisk.diff > 0) { riskBadge.textContent = hearingRisk.level + '  |  听力年龄差 +' + hearingRisk.diff + ' 岁'; } else { riskBadge.textContent = '本次未检出高频听阈偏移'; } }
+      else { riskBadge.textContent = hearingRisk.level; }
+      riskBadge.className = 'risk-badge ' + hearingRisk.levelCls; $('percentileText').innerHTML = hearingRisk.text;
+      var habitScoreEl = $('habitScoreText');
+      if (habitScoreEl) { habitScoreEl.innerHTML = '📊 <b>用耳习惯评分</b>：' + overall + ' 分（' + habitRisk.label + '）。' + '该评分基于音量、时长、场景、耳机类型 4 个习惯参数加权，反映你的日常用耳风险，与上方听力风险等级互不干扰。'; }
+
+      if (window.__hearingResult) {
+        var hr = window.__hearingResult; $('seg1MaxFreq').innerHTML = (hr.maxFreq || '—') + ' <span>Hz</span>';
+        $('seg1HearingAge').innerHTML = hr.hearingAge + ' <span>岁</span>'; $('seg1UserAge').innerHTML = hr.userAge + ' <span>岁</span>';
+        var diffAge = hr.hearingAge - hr.userAge;
+        if (diffAge > 0) { $('seg1AgeDiff').innerHTML = '+' + diffAge + ' <span>岁</span>'; }
+        else { $('seg1AgeDiff').innerHTML = '<span style="color:#4ade80;">未检出偏移</span>'; }
+      }
+      var radar5 = calcRadar5Scores(); drawRadar5(radar5Canvas, radar5); renderRadar5Defs(radar5);
+      var split = window.__causeSplit;
+      if (!split) {
+        $('seg2AgeOffset').textContent = '—'; $('seg2NoiseOffset').textContent = '—'; $('seg2NoiseRatio').textContent = '—';
+        drawPie(pieCanvas, 0, 0); $('seg2Explanation').innerHTML = '📌 需要先完成听力测试才能计算损伤成因拆分。请返回「① 听力年龄测试」完成九个频率的测试。';
+      } else {
+        var totalOffset = split.avgAgeOffset + split.avgNoiseOffset;
+        $('seg2AgeOffset').textContent = split.avgAgeOffset; $('seg2NoiseOffset').textContent = split.avgNoiseOffset; $('seg2NoiseRatio').textContent = split.noiseRatio;
+        drawPie(pieCanvas, split.avgAgeOffset, split.avgNoiseOffset);
+        var explanation = '';
+        if (totalOffset === 0) { explanation = '你的听阈在测试频率范围内正常，<b>没有检测到明显的听阈偏移</b>，耳蜗毛细胞状态良好。继续保持目前的用耳习惯。'; }
+        else if (split.noiseRatio >= 50) { explanation = '损伤主要集中在耳蜗<b>基底（高频端）</b>，符合噪声性听力损失的典型空间规律。你的听阈偏移中噪声占比达 <b>' + split.noiseRatio + '%</b>，说明目前的听力变化主要来自噪声暴露，这部分是可以通过改变用耳习惯预防的。'; }
+        else if (split.noiseRatio >= 25) { explanation = '损伤分布在耳蜗螺旋的中高频段，噪声与年龄因素共同作用。你的听阈偏移中噪声占比 <b>' + split.noiseRatio + '%</b>，与年龄因素相当，尽早调整用耳习惯可以减缓进一步损伤。'; }
+        else { explanation = '损伤目前以年龄自然衰老为主，噪声占比 <b>' + split.noiseRatio + '%</b>。保持良好的用耳习惯可以帮助维持现状。'; }
+        $('seg2Explanation').innerHTML = '📌 ' + explanation;
+      }
+      var currentDb = 85 + (state.volume - 60) * 0.5; var currentHours = state.daily;
+      var exposureYears = Math.max(1, state.age - state.ageStart); var exposureDays = exposureYears * 365;
+      var survivalBefore = estimateSurvival(currentDb, currentHours, exposureDays);
+      var protectedDb = Math.min(currentDb, 85); var protectedHours = Math.min(currentHours, 1) + Math.max(0, currentHours - 1) * 0.2;
+      var survivalAfter = estimateSurvival(protectedDb, protectedHours, exposureDays);
+      $('baBefore').textContent = survivalBefore.toFixed(1) + '%'; $('baAfter').textContent = survivalAfter.toFixed(1) + '%';
+      var delta = survivalAfter - survivalBefore; $('baDelta').textContent = delta > 0 ? '↑ 提升 ' + delta.toFixed(1) + ' 个百分点' : '无显著变化';
+
+      var advice = buildAdvice(scores, overall);
+      var htmlK = '', htmlA = '', htmlB = '';
+      advice.knowledge.forEach(function (it) { var cls = it.level === 'danger' ? 'danger' : it.level === 'warn' ? 'warn' : ''; htmlK += '<li class="' + cls + '">' + it.text + '</li>'; });
+      advice.attitude.forEach(function (it) { var cls = it.level === 'danger' ? 'danger' : it.level === 'warn' ? 'warn' : ''; htmlA += '<li class="' + cls + '">' + it.text + '</li>'; });
+      advice.behavior.forEach(function (it) { var cls = it.level === 'danger' ? 'danger' : it.level === 'warn' ? 'warn' : ''; htmlB += '<li class="' + cls + '">' + it.text + '</li>'; });
+      adviceKnowledge.innerHTML = htmlK; adviceAttitude.innerHTML = htmlA; adviceBehavior.innerHTML = htmlB;
+
+      var revisitText = '';
+      if (hearingRisk.hasResult && hearingRisk.diff <= 0) { revisitText = '💡 <b>如果三个月后再测一次</b>……继续保持目前的习惯，你的高频听觉状态有望保持稳定。用本工具复测一次，对比听力年龄和噪声占比的变化。'; }
+      else { revisitText = '💡 <b>如果三个月后再测一次</b>……坚持"音量 ≤60% + 单次 ≤60 分钟"三个月后，用本工具复测，对比听力年龄和噪声占比的变化。多数人能在 3 个月内看到噪声占比下降。建议把每次测试结果截图保存，形成纵向对照。'; }
+      $('revisitHint').innerHTML = revisitText;
+
+      window.__reportParams = { age: state.age, ageStart: state.ageStart, volume: state.volume, session: state.session, daily: state.daily, scenes: Array.from(state.scenes), type: state.type };
+
+      updateRecordOnServer({ report: { scores: scores, overall: overall, habitRisk: habitRisk.label, hearingRisk: hearingRisk.level, params: window.__reportParams } });
+
+      reportForm.classList.add('hidden'); reportResult.classList.remove('hidden');
+      var finishCard = document.getElementById('finishCard'); if (finishCard) finishCard.style.display = 'block';
+      var finishCode = document.getElementById('finishCode'); if (finishCode) finishCode.textContent = researchCode || '—';
+
+      if (isSaved()) {
+        var saveBtn = document.getElementById('saveDataBtn');
+        if (saveBtn) { saveBtn.textContent = '✓ 数据已保存（第 1 步）'; saveBtn.classList.add('success'); saveBtn.disabled = true; }
+        var saveTip = document.getElementById('saveTip'); if (saveTip) saveTip.classList.add('show');
+        updateWarnBarToSaved();
+      }
+
+      requestAnimationFrame(function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(function () {
+          if (typeof window.__initMiniCochlea === 'function') { window.__initMiniCochlea(); }
+          if (typeof window.__updateMiniCochlea === 'function') {
+            var cDb = 85 + (state.volume - 60) * 0.5; var eYears = Math.max(1, state.age - state.ageStart); var eDays = eYears * 365;
+            var leq8h = cDb + 10 * Math.log10(state.daily / 8); var doseRatio = Math.pow(2, (leq8h - 85) / 3);
+            var excess = Math.max(0, doseRatio - 1); var warning = doseRatio > 0.3 ? (doseRatio - 0.3) * 2.5 : 0;
+            var totalExcess = excess + warning; var recoveryFactor = Math.max(0.3, 1 - eDays / 5000);
+            var rawE = totalExcess * eDays * recoveryFactor * 0.005; var E = Math.log(1 + rawE) * 3;
+            window.__updateMiniCochlea(E, eDays, 0);
+          }
+        }, 120);
+      });
+    } catch (err) { alert('出错了：' + err.message); console.error(err); }
+  }
+
+  $('genBtn').addEventListener('click', generateReport);
+  $('resetBtn').addEventListener('click', function () { reportResult.classList.add('hidden'); reportForm.classList.remove('hidden'); });
+  $('gotoCochleaBtn').addEventListener('click', function () {
+    switchTab('cochlea');
+    setTimeout(function () { if (typeof window.__importReportParams === 'function') { window.__importReportParams(); } }, 100);
+  });
+
+  $('saveDataBtn').addEventListener('click', function () {
+    var btn = this; if (btn.disabled) return;
+    if (!currentRecord) { alert('请先完成听力测试和报告生成，再保存数据'); return; }
+    updateRecordOnServer({ savedByUser: true, savedAt: new Date().toISOString(), researchCode: researchCode, pretestCompleted: isPretestDone() });
+    try { localStorage.setItem('hearing_saved_data', JSON.stringify(currentRecord)); } catch (e) {}
+    markSaved(); btn.textContent = '✓ 数据已保存（第 1 步）'; btn.classList.add('success'); btn.disabled = true;
+    $('saveTip').classList.add('show'); updateWarnBarToSaved();
+  });
+
+  var wjxLoaded = false;
+  function loadWjxForm() {
+    if (wjxLoaded) return; var container = $('wjxContainer'); if (!container) return;
+    wjxLoaded = true; var script = document.createElement('script'); script.type = 'text/javascript';
+    script.src = 'https://v.wjx.cn/handler/jqemed.ashx?activity=Pbx9XkM&width=750&source=iframe';
+    script.async = true; container.appendChild(script);
+  }
+
+  $('postTestBtn').addEventListener('click', function () {
+    $('postTestCode').textContent = researchCode || '—'; $('postTestModal').classList.remove('hidden'); setTimeout(loadWjxForm, 100);
+  });
+  $('closePostTest').addEventListener('click', function () { $('postTestModal').classList.add('hidden'); });
+  $('postTestModal').addEventListener('click', function (e) { if (e.target === this) this.classList.add('hidden'); });
+
+  $('aboutBtn').addEventListener('click', function () { $('aboutModal').classList.remove('hidden'); });
+  $('closeAbout').addEventListener('click', function () { $('aboutModal').classList.add('hidden'); });
+  $('aboutModal').addEventListener('click', function (e) { if (e.target === this) this.classList.add('hidden'); });
+
+  var video = $('video'); var videoWrap = $('videoWrap');
+  if (video) { video.addEventListener('loadeddata', function () { show(videoWrap); }); video.addEventListener('error', function () { hide(videoWrap); }); }
+
+  sceneGroup.querySelector('[data-scene="commute"]').classList.add('active');
+  syncSliders(); updateLogicPanel();
+
+  startTestBtn.addEventListener('click', function () {
+    var a = Number(ageInput.value); if (a && a >= 8 && a <= 80) { state.age = a; $('reportAge').textContent = a + ' 岁'; }
+  });
+
+  function initGates() {
+    var pretestFromURL = false;
+    try {
+      var urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('pretest') === 'done' || window.location.hash === '#pretest-done') {
+        markPretestDone(); pretestFromURL = true;
+        if (window.history && window.history.replaceState) { window.history.replaceState({}, '', window.location.pathname); }
+      }
+    } catch (e) {}
+    var saved = getSavedCode();
+    if (pretestFromURL && saved && /^\d{4}$/.test(saved)) { researchCode = saved; showMainApp(saved); return; }
+
+    hideAllGates(); var wg = document.getElementById('welcomeGate'); if (wg) wg.style.display = 'block';
+
+    var welcomeStartBtn = document.getElementById('welcomeStartBtn');
+    if (welcomeStartBtn) {
+      welcomeStartBtn.addEventListener('click', function () {
+        var existing = getSavedCode();
+        if (existing && /^\d{4}$/.test(existing)) {
+          researchCode = existing;
+          if (isPretestDone()) { showMainApp(existing); } else { showPretestGate(existing); }
+        } else { showCodeGate(false); }
+      });
+    }
+
+    var codeConfirmBtn = document.getElementById('codeConfirmBtn');
+    if (codeConfirmBtn) {
+      codeConfirmBtn.addEventListener('click', function () {
+        var code = this.dataset.code || getSavedCode();
+        if (!code || !/^\d{4}$/.test(code)) { alert('编码未准备好，请稍候或刷新页面'); return; }
+        saveCode(code); enterApp(code);
+      });
+    }
+
+    var manualToggle = document.getElementById('manualToggle');
+    var manualArea = document.getElementById('manualArea');
+    if (manualToggle && manualArea) {
+      manualToggle.addEventListener('click', function () {
+        manualArea.classList.toggle('show'); var inp = document.getElementById('manualCodeInput'); if (inp) inp.focus();
+      });
+    }
+
+    var manualConfirmBtn = document.getElementById('manualConfirmBtn');
+    var manualCodeInput = document.getElementById('manualCodeInput');
+    if (manualConfirmBtn && manualCodeInput) {
+      manualCodeInput.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 4); });
+      manualCodeInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') manualConfirmBtn.click(); });
+      manualConfirmBtn.addEventListener('click', function () {
+        var v = manualCodeInput.value.trim();
+        if (!/^\d{4}$/.test(v)) { alert('请输入 4 位纯数字'); manualCodeInput.focus(); return; }
+        saveCode(v); enterApp(v);
+      });
+    }
+
+    var pretestDoneBtn = document.getElementById('pretestDoneBtn');
+    if (pretestDoneBtn) {
+      pretestDoneBtn.addEventListener('click', function () { markPretestDone(); showMainApp(researchCode); });
+    }
+  }
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initGates); }
+  else { initGates(); }
+})();
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
 }
 </script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+function createCochleaScene(cellCount) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a12);
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+  camera.position.set(0, 2, 7);
+  camera.lookAt(0, 0, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(5, 10, 7);
+  scene.add(dirLight);
+  const fillLight = new THREE.PointLight(0x4488ff, 0.6);
+  fillLight.position.set(-3, -2, 4);
+  scene.add(fillLight);
+
+  const TURNS = 2.5;
+  const SPIRAL_RADIUS = 1.8;
+  const SPIRAL_HEIGHT = 3.4;
+
+  function spiralPosition(t) {
+    const angle = t * Math.PI * 2 * TURNS;
+    const r = SPIRAL_RADIUS * (1 - t * 0.5);
+    return {
+      x: Math.cos(angle) * r,
+      y: (t - 0.5) * SPIRAL_HEIGHT,
+      z: Math.sin(angle) * r
+    };
+  }
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const tubePoints = [];
+  for (let i = 0; i <= 240; i++) {
+    const p = spiralPosition(i / 240);
+    tubePoints.push(new THREE.Vector3(p.x, p.y, p.z));
+  }
+  const tubeCurve = new THREE.CatmullRomCurve3(tubePoints);
+  const tubeGeom = new THREE.TubeGeometry(tubeCurve, 240, 0.10, 8, false);
+  group.add(new THREE.Mesh(tubeGeom,
+    new THREE.MeshStandardMaterial({ color:0x2a4a6a, transparent:true, opacity:0.30, roughness:0.6 })));
+
+  const cells = [];
+  for (let i = 0; i < cellCount; i++) {
+    const t = i / (cellCount - 1);
+    const p = spiralPosition(t);
+    const cellGeom = new THREE.ConeGeometry(0.09, 0.38, 8);
+    const cellMat = new THREE.MeshStandardMaterial({
+      color:0x4ade80, emissive:0x166534, emissiveIntensity:0.7, roughness:0.4
+    });
+    const cellMesh = new THREE.Mesh(cellGeom, cellMat);
+    const outward = new THREE.Vector3(p.x, 0, p.z).normalize();
+    cellMesh.position.set(p.x, p.y, p.z);
+    cellMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), outward);
+    group.add(cellMesh);
+    cells.push({ t, mesh:cellMesh, mat:cellMat, currentDamage:0, targetDamage:0 });
+  }
+
+  group.add(new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, SPIRAL_HEIGHT + 0.5, 8),
+    new THREE.MeshBasicMaterial({ color:0x1e3a5f, transparent:true, opacity:0.25 })
+  ));
+
+  return { scene, camera, cells, group };
+}
+
+function calcDailyDose(db, hours) {
+  const leq8h = db + 10 * Math.log10(hours / 8);
+  const doseRatio = Math.pow(2, (leq8h - 85) / 3);
+  return { leq8h, doseRatio };
+}
+
+function calcCumulativeExposure(db, hours, days) {
+  const { doseRatio } = calcDailyDose(db, hours);
+  const excess = Math.max(0, doseRatio - 1);
+  const warning = doseRatio > 0.3 ? (doseRatio - 0.3) * 2.5 : 0;
+  const totalExcess = excess + warning;
+  const recoveryFactor = Math.max(0.3, 1 - days / 5000);
+  const rawE = totalExcess * days * recoveryFactor * 0.005;
+  return Math.log(1 + rawE) * 3;
+}
+
+function cellBaseDamage(t, E) {
+  const threshold = 0.5 + 15 * t;
+  return Math.max(0, Math.min(1, (E - threshold) / 0.5));
+}
+
+function applyTTSRecovery(baseDamage, days, afterDays) {
+  if (baseDamage <= 0) return 0;
+  const recoverableFraction = Math.exp(-days / 60);
+  const recoveryProgress = 1 - Math.exp(-afterDays / 30);
+  const permanent = baseDamage * (1 - recoverableFraction);
+  const recoverable = baseDamage * recoverableFraction;
+  return permanent + recoverable * (1 - recoveryProgress);
+}
+
+const COLOR_HEALTHY = new THREE.Color(0x4ade80);
+const COLOR_WARN = new THREE.Color(0xfbbf24);
+const COLOR_DANGER = new THREE.Color(0xef4444);
+const COLOR_DEAD = new THREE.Color(0x1a1a1a);
+const tmpColor = new THREE.Color();
+
+function applyDamageToCells(cells, E, days, afterDays) {
+  let totalHealth = 0, deadCount = 0;
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    const baseDamage = cellBaseDamage(cell.t, E);
+    const finalDamage = applyTTSRecovery(baseDamage, days, afterDays);
+    cell.targetDamage = finalDamage;
+    totalHealth += (1 - finalDamage);
+    if (finalDamage >= 0.95) deadCount++;
+  }
+  return { survivalRate: (totalHealth / cells.length) * 100, deadCount };
+}
+
+function applyDamageImmediate(cells) {
+  for (let i = 0; i < cells.length; i++) {
+    cells[i].currentDamage = cells[i].targetDamage;
+  }
+}
+
+function renderCellsOnce(cells) {
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    const d = cell.currentDamage;
+    if (d < 0.5) tmpColor.copy(COLOR_HEALTHY).lerp(COLOR_WARN, d / 0.5);
+    else if (d < 0.85) tmpColor.copy(COLOR_WARN).lerp(COLOR_DANGER, (d - 0.5) / 0.35);
+    else tmpColor.copy(COLOR_DANGER).lerp(COLOR_DEAD, (d - 0.85) / 0.15);
+    cell.mat.color.copy(tmpColor);
+    cell.mat.emissive.copy(tmpColor);
+    cell.mat.emissiveIntensity = Math.max(0, 0.7 * (1 - d));
+    const scale = (1 - d * 0.85);
+    cell.mesh.scale.set(scale, scale, scale);
+  }
+}
+
+function animateCells(cells, time) {
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    cell.currentDamage += (cell.targetDamage - cell.currentDamage) * 0.05;
+    const d = cell.currentDamage;
+    if (d < 0.5) tmpColor.copy(COLOR_HEALTHY).lerp(COLOR_WARN, d / 0.5);
+    else if (d < 0.85) tmpColor.copy(COLOR_WARN).lerp(COLOR_DANGER, (d - 0.5) / 0.35);
+    else tmpColor.copy(COLOR_DANGER).lerp(COLOR_DEAD, (d - 0.85) / 0.15);
+    cell.mat.color.copy(tmpColor);
+    cell.mat.emissive.copy(tmpColor);
+    cell.mat.emissiveIntensity = Math.max(0, 0.7 * (1 - d));
+    const pulse = 1 + Math.sin(time * 2 + i * 0.3) * 0.04 * (1 - d);
+    const scale = (1 - d * 0.85) * pulse;
+    cell.mesh.scale.set(scale, scale, scale);
+  }
+}
+
+let mini = null;
+let miniRenderer = null;
+let miniControls = null;
+let miniBox = null;
+let miniInitialized = false;
+
+function initMiniCochlea() {
+  if (miniInitialized) return;
+  miniBox = document.getElementById('miniCochleaBox');
+  if (!miniBox) return;
+  const w = miniBox.clientWidth;
+  const h = miniBox.clientHeight;
+  if (w <= 0 || h <= 0) return;
+
+  miniInitialized = true;
+  const miniCanvas = document.createElement('canvas');
+  miniCanvas.style.width = '100%';
+  miniCanvas.style.height = '100%';
+  miniCanvas.style.display = 'block';
+  miniBox.insertBefore(miniCanvas, miniBox.firstChild);
+
+  miniRenderer = new THREE.WebGLRenderer({ antialias: true, canvas: miniCanvas });
+  miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  miniRenderer.setSize(w, h, false);
+
+  mini = createCochleaScene(60);
+  miniControls = new OrbitControls(mini.camera, miniCanvas);
+  miniControls.enableDamping = true;
+  miniControls.autoRotate = true;
+  miniControls.autoRotateSpeed = 0.8;
+  miniControls.enableZoom = false;
+
+  mini.camera.aspect = w / h;
+  mini.camera.updateProjectionMatrix();
+
+  const defaultE = calcCumulativeExposure(95, 4, 730);
+  applyDamageToCells(mini.cells, defaultE, 730, 0);
+  applyDamageImmediate(mini.cells);
+
+  function animateMini() {
+    requestAnimationFrame(animateMini);
+    if (!mini || !miniBox || miniBox.offsetWidth === 0) return;
+    const time = performance.now() * 0.001;
+    animateCells(mini.cells, time);
+    miniControls.update();
+    miniRenderer.render(mini.scene, mini.camera);
+  }
+  animateMini();
+}
+
+function resizeMini() {
+  if (!mini || !miniBox) return;
+  const w = miniBox.clientWidth;
+  const h = miniBox.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  miniRenderer.setSize(w, h, false);
+  mini.camera.aspect = w / h;
+  mini.camera.updateProjectionMatrix();
+}
+
+window.addEventListener('resize', resizeMini);
+window.__initMiniCochlea = initMiniCochlea;
+window.__resizeMiniCochlea = resizeMini;
+window.__updateMiniCochlea = function (E, days, afterDays) {
+  if (!mini) return;
+  applyDamageToCells(mini.cells, E, days, afterDays);
+  applyDamageImmediate(mini.cells);
+};
+
+const canvasBox = document.getElementById('cochleaCanvasBox');
+if (canvasBox) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  canvasBox.appendChild(renderer.domElement);
+
+  const full = createCochleaScene(120);
+  const controls = new OrbitControls(full.camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+  controls.target.set(0, 0, 0);
+
+  const dbSlider = document.getElementById('dbSlider');
+  const hoursSlider = document.getElementById('hoursSlider');
+  const daysSlider = document.getElementById('daysSlider');
+  const afterSlider = document.getElementById('afterSlider');
+  const dbVal = document.getElementById('dbVal');
+  const hoursVal = document.getElementById('hoursVal');
+  const daysVal = document.getElementById('daysVal');
+  const afterVal = document.getElementById('afterVal');
+  const hudDose = document.getElementById('hudDose');
+  const hudSurvival = document.getElementById('hudSurvival');
+  const hudOverallRisk = document.getElementById('hudOverallRisk');
+  const hudPreset = document.getElementById('hudPreset');
+  const doseStat = document.getElementById('doseStat');
+  const effDbStat = document.getElementById('effDbStat');
+  const effHoursStat = document.getElementById('effHoursStat');
+  const survivalStat = document.getElementById('survivalStat');
+  const deadStat = document.getElementById('deadStat');
+  const protectVol = document.getElementById('protectVol');
+  const protectTime = document.getElementById('protectTime');
+  const protectPlug = document.getElementById('protectPlug');
+  const importBanner = document.getElementById('importBanner');
+
+  const protection = { vol:false, time:false, plug:false };
+  const SEV_LABEL = ['安全', '注意', '警告', '危险'];
+  const SEV_CLASS = ['good', 'mid', 'warn', 'bad'];
+
+  function doseSeverity(doseRatio) {
+    if (doseRatio < 1.0) return 0;
+    if (doseRatio < 2.0) return 1;
+    if (doseRatio < 4.0) return 2;
+    return 3;
+  }
+  function damageSeverity(survivalRate) {
+    if (survivalRate > 90) return 0;
+    if (survivalRate > 70) return 1;
+    if (survivalRate > 30) return 2;
+    return 3;
+  }
+  function applySeverity(el, sev) {
+    el.className = 'tag ' + SEV_CLASS[sev];
+    el.textContent = SEV_LABEL[sev];
+  }
+
+  function updateSimulation() {
+    const rawDb = parseFloat(dbSlider.value);
+    const rawHours = parseFloat(hoursSlider.value);
+    const days = parseFloat(daysSlider.value);
+    const afterDays = parseFloat(afterSlider.value);
+
+    dbVal.textContent = rawDb + ' dB';
+    hoursVal.textContent = rawHours.toFixed(1) + ' 小时';
+    daysVal.textContent = days + ' 天';
+    afterVal.textContent = afterDays + ' 天';
+
+    let effDb = rawDb;
+    let effHours = rawHours;
+    if (protection.vol) effDb = Math.min(effDb, 85);
+    if (protection.plug) effDb = Math.max(60, effDb - 15);
+    if (protection.time) {
+      effHours = Math.min(effHours, 1) + Math.max(0, effHours - 1) * 0.2;
+    }
+
+    effDbStat.textContent = effDb.toFixed(1);
+    effHoursStat.textContent = effHours.toFixed(1);
+
+    const { doseRatio } = calcDailyDose(effDb, effHours);
+    doseStat.textContent = Math.round(doseRatio * 100) + '%';
+    hudDose.textContent = Math.round(doseRatio * 100);
+
+    const E = calcCumulativeExposure(effDb, effHours, days);
+    const result = applyDamageToCells(full.cells, E, days, afterDays);
+
+    hudSurvival.textContent = result.survivalRate.toFixed(1);
+    survivalStat.textContent = result.survivalRate.toFixed(1);
+    deadStat.textContent = result.deadCount;
+
+    const doseSev = doseSeverity(doseRatio);
+    const dmgSev = damageSeverity(result.survivalRate);
+    const overallSev = Math.max(doseSev, dmgSev);
+    applySeverity(hudOverallRisk, overallSev);
+
+    survivalStat.className = 'num ' +
+      (result.survivalRate > 80 ? 'good' : result.survivalRate > 50 ? 'mid' : 'bad');
+
+    drawRecoveryCurve(effDb, effHours, days, afterDays);
+  }
+
+  const recoveryCanvas = document.getElementById('recoveryCurve');
+
+  function drawRecoveryCurve(effDb, effHours, days, currentAfterDays) {
+    const wrap = recoveryCanvas.parentElement;
+    const cssW = wrap.clientWidth - 22;
+    if (cssW <= 0) return;
+    const cssH = 130;
+    const dpr = window.devicePixelRatio || 1;
+    recoveryCanvas.width = cssW * dpr;
+    recoveryCanvas.height = cssH * dpr;
+    recoveryCanvas.style.width = cssW + 'px';
+    recoveryCanvas.style.height = cssH + 'px';
+    const ctx = recoveryCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const padL = 38, padR = 10, padT = 14, padB = 20;
+    const plotW = cssW - padL - padR;
+    const plotH = cssH - padT - padB;
+    const E_end = calcCumulativeExposure(effDb, effHours, days);
+
+    const maxAfter = 365;
+    const steps = 60;
+    const samples = [];
+    for (let s = 0; s <= steps; s++) {
+      const af = (s / steps) * maxAfter;
+      let th = 0;
+      for (let i = 0; i < full.cells.length; i++) {
+        th += (1 - applyTTSRecovery(cellBaseDamage(full.cells[i].t, E_end), days, af));
+      }
+      samples.push({ af, survival: (th / full.cells.length) * 100 });
+    }
+
+    function xFor(af) { return padL + (af / maxAfter) * plotW; }
+    function yFor(sv) { return padT + (1 - sv / 100) * plotH; }
+
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    [0, 25, 50, 75, 100].forEach(v => {
+      const y = yFor(v);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(v + '%', padL - 4, y);
+    });
+
+    ctx.beginPath();
+    samples.forEach((s, i) => {
+      const x = xFor(s.af), y = yFor(s.survival);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(xFor(maxAfter), yFor(0));
+    ctx.lineTo(xFor(0), yFor(0));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(59,130,246,0.12)';
+    ctx.fill();
+
+    ctx.beginPath();
+    samples.forEach((s, i) => {
+      const x = xFor(s.af), y = yFor(s.survival);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    const cur = samples.reduce((best, s) =>
+      Math.abs(s.af - currentAfterDays) < Math.abs(best.af - currentAfterDays) ? s : best, samples[0]);
+    const cx = xFor(currentAfterDays), cy = yFor(cur.survival);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#60a5fa';
+    ctx.fill();
+    ctx.strokeStyle = '#0b1120';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('暴露结束', padL, cssH - 15);
+    ctx.fillText('停曝 180 天', padL + plotW / 2, cssH - 15);
+    ctx.fillText('停曝 365 天', padL + plotW, cssH - 15);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('存活率随停曝时间变化', padL, 0);
+  }
+
+  function animateFull() {
+    requestAnimationFrame(animateFull);
+    if (canvasBox.offsetWidth === 0) return;
+    const time = performance.now() * 0.001;
+    animateCells(full.cells, time);
+    controls.update();
+    renderer.render(full.scene, full.camera);
+  }
+  animateFull();
+
+  function resizeFull() {
+    const w = canvasBox.clientWidth;
+    const h = canvasBox.clientHeight;
+    if (w <= 0 || h <= 0) return;
+    full.camera.aspect = w / h;
+    full.camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    updateSimulation();
+  }
+  window.addEventListener('resize', resizeFull);
+  window.__onCochleaTabShow = resizeFull;
+
+  function clearPresetActive() {
+    document.querySelectorAll('.switch-btn.preset').forEach(b => b.classList.remove('active'));
+    hudPreset.classList.remove('show');
+  }
+
+  dbSlider.addEventListener('input', function () { updateSimulation(); clearPresetActive(); });
+  hoursSlider.addEventListener('input', function () { updateSimulation(); clearPresetActive(); });
+  daysSlider.addEventListener('input', function () { updateSimulation(); clearPresetActive(); });
+  afterSlider.addEventListener('input', updateSimulation);
+
+  function toggleProtection(btn, key) {
+    protection[key] = !protection[key];
+    btn.classList.toggle('active', protection[key]);
+    updateSimulation();
+  }
+  protectVol.addEventListener('click', () => toggleProtection(protectVol, 'vol'));
+  protectTime.addEventListener('click', () => toggleProtection(protectTime, 'time'));
+  protectPlug.addEventListener('click', () => toggleProtection(protectPlug, 'plug'));
+
+  function applyPreset(db, hours, days, presetName) {
+    dbSlider.value = db;
+    hoursSlider.value = hours;
+    daysSlider.value = days;
+    afterSlider.value = 0;
+    clearPresetActive();
+    updateSimulation();
+    applyDamageImmediate(full.cells);
+    renderCellsOnce(full.cells);
+    hudPreset.textContent = '当前档位：' + presetName;
+    hudPreset.classList.add('show');
+  }
+
+  document.getElementById('presetSafe').addEventListener('click', function () {
+    applyPreset(78, 2, 120, '安全对照');
+    this.classList.add('active');
+  });
+  document.getElementById('presetNotice').addEventListener('click', function () {
+    applyPreset(93, 1, 365, '注意');
+    this.classList.add('active');
+  });
+  document.getElementById('presetWarn').addEventListener('click', function () {
+    applyPreset(95, 4, 730, '警告');
+    this.classList.add('active');
+  });
+  document.getElementById('presetDanger').addEventListener('click', function () {
+    applyPreset(102, 6, 1095, '危险');
+    this.classList.add('active');
+  });
+
+  window.__importReportParams = function () {
+    const p = window.__reportParams;
+    if (!p) { alert('请先在「听力安全报告」中生成报告'); return; }
+
+    const exposureYears = Math.max(1, p.age - p.ageStart);
+    const exposureDays = exposureYears * 365;
+
+    if (parseFloat(daysSlider.value) === 0) {
+      daysSlider.value = Math.min(exposureDays, 3650);
+    }
+
+    const db = Math.max(60, Math.min(120, Math.round(85 + (p.volume - 60) * 0.5)));
+    dbSlider.value = db;
+    hoursSlider.value = p.daily;
+
+    if (p.volume <= 60 && !protection.vol) {
+      protection.vol = true;
+      protectVol.classList.add('active');
+    }
+    if (p.session <= 60 && !protection.time) {
+      protection.time = true;
+      protectTime.classList.add('active');
+    }
+
+    importBanner.classList.remove('hidden');
+    importBanner.textContent = '💡 已带入：年龄 ' + p.age + ' 岁，开始使用 ' + p.ageStart +
+      ' 岁，暴露约 ' + exposureYears + ' 年（' + exposureDays + ' 天）';
+    updateSimulation();
+  };
+
+  resizeFull();
+  updateSimulation();
+}
+</script>
+
 </body>
 </html>
