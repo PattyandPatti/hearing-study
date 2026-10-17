@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>研究者管理页</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+         background:#0b1120; color:#e2e8f0; padding:20px; }
+  h1 { font-size:20px; margin-bottom:6px; color:#60a5fa; }
+  .subtitle { font-size:13px; color:#94a3b8; margin-bottom:20px; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .stat { background:#1e293b; padding:12px 20px; border-radius:10px; }
+  .stat .k { font-size:11px; color:#94a3b8; }
+  .stat .v { font-size:24px; font-weight:700; color:#4ade80; margin-top:4px; }
+  .toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer;
+         font-size:13px; font-family:inherit; font-weight:600; }
+  .btn.primary { background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; }
+  .btn.secondary { background:#334155; color:#cbd5e1; }
+  .btn:hover { opacity:.9; }
+  #pwdBar { background:#1e293b; padding:16px; border-radius:12px; margin-bottom:20px; display:flex; gap:10px; }
+  #pwdBar input { flex:1; padding:10px 14px; border-radius:8px; border:1px solid #475569;
+                  background:#0f172a; color:#fff; font-family:inherit; font-size:14px; }
+  #tableWrap { overflow-x:auto; background:#1e293b; border-radius:12px; padding:8px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { background:#0f172a; padding:10px; text-align:left; color:#94a3b8; font-weight:600; position:sticky; top:0; }
+  td { padding:10px; border-bottom:1px solid #1e293b; }
+  tr:hover td { background:#0f172a; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; }
+  .tag.safe { background:#065f46; color:#6ee7b7; }
+  .tag.mid { background:#854d0e; color:#fcd34d; }
+  .tag.bad { background:#7f1d1d; color:#fca5a5; }
+  .tag.saved { background:#1e3a5f; color:#93c5fd; }
+  .tag.unsaved { background:#334155; color:#94a3b8; }
+  .empty { text-align:center; padding:40px; color:#64748b; }
+  .code-cell { font-family:Consolas, monospace; font-weight:700; color:#60a5fa; letter-spacing:2px; }
+</style>
+</head>
+<body>
+<h1>📊 听力测试数据管理</h1>
+<p class="subtitle">仅研究者可见。数据实时存储于服务器，可导出 CSV 分析。</p>
+
+<div id="pwdBar">
+  <input id="pwdInput" type="password" placeholder="输入管理密码" value="research2025">
+  <button class="btn primary" onclick="loadData()">进入</button>
+</div>
+
+<div id="main" style="display:none;">
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="loadData()">🔄 刷新</button>
+    <button class="btn secondary" onclick="exportCSV()">⬇️ 导出 CSV</button>
+    <button class="btn secondary" onclick="exportJSON()">⬇️ 导出 JSON</button>
+  </div>
+  <div id="tableWrap"><div class="empty">加载中…</div></div>
+</div>
+
+<script>
+let currentData = [];
+function getPwd() { return document.getElementById('pwdInput').value; }
+
+function loadData() {
+  fetch('/api/records?pwd=' + encodeURIComponent(getPwd()))
+    .then(r => { if (!r.ok) throw new Error('密码错误或无权限'); return r.json(); })
+    .then(data => {
+      currentData = data;
+      document.getElementById('pwdBar').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      renderStats(); renderTable();
+    })
+    .catch(e => alert(e.message));
+}
+
+function renderStats() {
+  const total = currentData.length;
+  const withReport = currentData.filter(r => r.report).length;
+  const saved = currentData.filter(r => r.savedByUser).length;
+  const pretestDone = currentData.filter(r => r.pretestCompleted).length;
+  const codes = new Set(currentData.map(r => r.researchCode).filter(c => c));
+  document.getElementById('stats').innerHTML =
+    `<div class="stat"><div class="k">总记录</div><div class="v">${total}</div></div>
+     <div class="stat"><div class="k">独立编码</div><div class="v">${codes.size}</div></div>
+     <div class="stat"><div class="k">前测完成</div><div class="v">${pretestDone}</div></div>
+     <div class="stat"><div class="k">已完成报告</div><div class="v">${withReport}</div></div>
+     <div class="stat"><div class="k">用户已保存</div><div class="v">${saved}</div></div>`;
+}
+
+function renderTable() {
+  if (!currentData.length) { document.getElementById('tableWrap').innerHTML = '<div class="empty">暂无数据</div>'; return; }
+  let html = `<table><thead><tr>
+    <th>研究编码</th><th>提交时间</th><th>前测</th><th>保存状态</th><th>听力年龄</th><th>实际年龄</th><th>最高频率</th><th>IP</th>
+  </tr></thead><tbody>`;
+  currentData.slice().reverse().forEach(r => {
+    const savedText = r.savedByUser ? '✓ 已保存' : '未保存';
+    const savedClass = r.savedByUser ? 'saved' : 'unsaved';
+    const pretestText = r.pretestCompleted ? '✓ 已完成' : '未完成';
+    const pretestClass = r.pretestCompleted ? 'saved' : 'unsaved';
+    html += `<tr>
+      <td class="code-cell">${r.researchCode || '—'}</td>
+      <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '—'}</td>
+      <td><span class="tag ${pretestClass}">${pretestText}</span></td>
+      <td><span class="tag ${savedClass}">${savedText}</span></td>
+      <td>${r.displayHearingAge || '—'}</td>
+      <td>${r.userAge || '—'}</td>
+      <td>${r.maxFreq ? r.maxFreq + ' Hz' : '—'}</td>
+      <td style="font-size:10px;color:#64748b;">${r.ip || '—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function exportJSON() {
+  if (!currentData.length) return alert('暂无数据');
+  const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
+  download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.json');
+}
+
+function exportCSV() {
+  if (!currentData.length) return alert('暂无数据');
+  const rows = [['研究编码','提交时间','前测完成','保存状态','听力年龄','实际年龄','最高频率','IP']];
+  currentData.forEach(r => {
+    rows.push([r.researchCode || '', r.timestamp || '', r.pretestCompleted ? '已完成' : '未完成',
+      r.savedByUser ? '已保存' : '未保存', r.displayHearingAge || '', r.userAge || '', r.maxFreq || '', r.ip || '']);
+  });
+  const csv = rows.map(row => row.map(cell => {
+    const s = String(cell == null ? '' : cell);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.csv');
+}
+
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
