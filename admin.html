@@ -13,6 +13,7 @@
   .stat { background:#1e293b; padding:12px 20px; border-radius:10px; }
   .stat .k { font-size:11px; color:#94a3b8; }
   .stat .v { font-size:24px; font-weight:700; color:#4ade80; margin-top:4px; }
+  .stat .v.warn { color:#fbbf24; }
   .toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer;
          font-size:13px; font-family:inherit; font-weight:600; }
@@ -33,8 +34,12 @@
   .tag.bad { background:#7f1d1d; color:#fca5a5; }
   .tag.saved { background:#1e3a5f; color:#93c5fd; }
   .tag.unsaved { background:#334155; color:#94a3b8; }
+  .tag.warn { background:#7c2d12; color:#fed7aa; }
   .empty { text-align:center; padding:40px; color:#64748b; }
   .code-cell { font-family:Consolas, monospace; font-weight:700; color:#60a5fa; letter-spacing:2px; }
+  .code-cell.dup { color:#fbbf24; }
+  .col-group-q { border-left:2px solid #a78bfa; }
+  .hint { font-size:11px; color:#64748b; line-height:1.6; margin-bottom:10px; }
 </style>
 </head>
 <body>
@@ -42,7 +47,8 @@
 <p class="subtitle">仅研究者可见。数据实时存储于服务器，可导出 CSV 分析。</p>
 
 <div id="pwdBar">
-  <input id="pwdInput" type="password" placeholder="输入管理密码" value="research2025">
+  <!-- ✅ 修改点：去掉默认密码，改为让用户手动输入 -->
+  <input id="pwdInput" type="password" placeholder="输入管理密码">
   <button class="btn primary" onclick="loadData()">进入</button>
 </div>
 
@@ -53,6 +59,10 @@
     <button class="btn secondary" onclick="exportCSV()">⬇️ 导出 CSV</button>
     <button class="btn secondary" onclick="exportJSON()">⬇️ 导出 JSON</button>
   </div>
+  <p class="hint">
+    📌 <b>列含义</b>：噪声性残余偏移 = 实测听阈偏移 − ISO 7029 年龄可解释部分（dB HL）；
+    「重复一致性」= 16k/10k 两个重复点中与首次响应一致的数量；「匹配不一致」= 9 点响应与最接近年龄参考模式不一致的频点数。
+  </p>
   <div id="tableWrap"><div class="empty">加载中…</div></div>
 </div>
 
@@ -77,41 +87,82 @@ function renderStats() {
   const saved = currentData.filter(r => r.savedByUser).length;
   const pretestDone = currentData.filter(r => r.pretestCompleted).length;
   const codes = new Set(currentData.map(r => r.researchCode).filter(c => c));
+  // ✅ 修改点：统计"同编码多记录"的情况（数据质量问题）
+  const codeCount = {};
+  currentData.forEach(r => { if (r.researchCode) codeCount[r.researchCode] = (codeCount[r.researchCode] || 0) + 1; });
+  const dupCodes = Object.keys(codeCount).filter(c => codeCount[c] > 1).length;
+
   document.getElementById('stats').innerHTML =
     `<div class="stat"><div class="k">总记录</div><div class="v">${total}</div></div>
      <div class="stat"><div class="k">独立编码</div><div class="v">${codes.size}</div></div>
      <div class="stat"><div class="k">前测完成</div><div class="v">${pretestDone}</div></div>
-     <div class="stat"><div class="k">用户已保存</div><div class="v">${saved}</div></div>`;
+     <div class="stat"><div class="k">用户已保存</div><div class="v">${saved}</div></div>
+     <div class="stat"><div class="k">同编码多记录</div><div class="v ${dupCodes > 0 ? 'warn' : ''}">${dupCodes}</div></div>`;
+}
+
+// ✅ 修改点：兼容旧数据字段（avgNoiseOffset → avgResidualOffset）
+function getResidualOffset(split) {
+  if (!split) return null;
+  if (split.avgResidualOffset != null) return split.avgResidualOffset;
+  if (split.avgNoiseOffset != null) return split.avgNoiseOffset; // 兼容旧记录
+  return null;
+}
+function getResidualRatio(split) {
+  if (!split) return null;
+  if (split.residualRatio != null) return split.residualRatio;
+  if (split.noiseRatio != null) return split.noiseRatio;
+  return null;
+}
+function getConsistencyText(r) {
+  const c = r.consistency;
+  if (!c || !c.checked) return '—';
+  return (c.checked - c.mismatches) + '/' + c.checked;
+}
+function getMatchText(r) {
+  if (r.matchMismatches == null || r.matchTotal == null) return '—';
+  return r.matchMismatches + '/' + r.matchTotal;
 }
 
 function renderTable() {
   if (!currentData.length) { document.getElementById('tableWrap').innerHTML = '<div class="empty">暂无数据</div>'; return; }
-  
+
+  // 统计每个编码出现次数，用于高亮
+  const codeCount = {};
+  currentData.forEach(r => { if (r.researchCode) codeCount[r.researchCode] = (codeCount[r.researchCode] || 0) + 1; });
+
+  // ✅ 修改点：表头名称与 index.html 五维定义严格对齐
   let html = `<table><thead><tr>
     <th>研究编码</th><th>提交时间</th><th>实际年龄</th><th>最高频率</th><th>听力年龄</th>
-    <th>综合评分</th><th>听觉范围</th><th>音高辨识</th><th>噪声耐受</th><th>敏感度</th><th>使用习惯</th>
-    <th>日剂量比</th><th>噪声偏移</th><th>年龄偏移</th><th>预测偏移</th><th>存活率</th>
+    <th>综合评分</th>
+    <th>听觉范围</th><th>噪声耐受</th><th>音量控制</th><th>时长控制</th><th>场景安全</th>
+    <th>日剂量比</th><th>噪声性残余(dB HL)</th><th>年龄偏移(dB HL)</th><th>预测偏移(dB HL)</th><th>存活率</th>
+    <th class="col-group-q">重复一致性</th><th class="col-group-q">匹配不一致</th>
     <th>前测</th><th>保存</th>
   </tr></thead><tbody>`;
 
   currentData.slice().reverse().forEach(r => {
     const rep = r.report || {};
-    const r5 = rep.radar5 || {}; // 读取我们新加的五维数据
+    const r5 = rep.radar5 || {};
     const split = r.causeSplit || {};
-    
+
     const savedText = r.savedByUser ? '✓ 已保存' : '未保存';
     const savedClass = r.savedByUser ? 'saved' : 'unsaved';
     const pretestText = r.pretestCompleted ? '✓ 已完成' : '未完成';
     const pretestClass = r.pretestCompleted ? 'saved' : 'unsaved';
 
+    const residual = getResidualOffset(split);
+    const ageOffset = split.avgAgeOffset;
+    const dupFlag = r.researchCode && codeCount[r.researchCode] > 1;
+    const codeClass = dupFlag ? 'code-cell dup' : 'code-cell';
+    const dupMark = dupFlag ? ' ⚠️' : '';
+
     html += `<tr>
-      <td class="code-cell">${r.researchCode || '—'}</td>
+      <td class="${codeClass}">${r.researchCode || '—'}${dupMark}</td>
       <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '—'}</td>
       <td>${r.userAge || '—'}</td>
       <td>${r.maxFreq ? r.maxFreq + ' Hz' : '—'}</td>
       <td style="color:#4ade80;font-weight:bold;">${r.displayHearingAge || '—'}</td>
-      
-      <!-- 新数据列 -->
+
       <td>${rep.overall != null ? rep.overall : '—'}</td>
       <td>${r5.hearingRange != null ? r5.hearingRange : '—'}</td>
       <td>${r5.noiseTolerance != null ? r5.noiseTolerance : '—'}</td>
@@ -119,11 +170,15 @@ function renderTable() {
       <td>${r5.timeCtrl != null ? r5.timeCtrl : '—'}</td>
       <td>${r5.sceneSafe != null ? r5.sceneSafe : '—'}</td>
       <td>${rep.doseRatio != null ? rep.doseRatio + '%' : '—'}</td>
-      <td>${split.avgNoiseOffset != null ? split.avgNoiseOffset : '—'}</td>
-      <td>${split.avgAgeOffset != null ? split.avgAgeOffset : '—'}</td>
+      <td>${residual != null ? residual : '—'}</td>
+      <td>${ageOffset != null ? ageOffset : '—'}</td>
       <td>${rep.predictedOffset != null ? rep.predictedOffset : '—'}</td>
       <td>${rep.survivalRate != null ? rep.survivalRate + '%' : '—'}</td>
-      
+
+      <!-- ✅ 修改点：新增数据质量列 -->
+      <td class="col-group-q">${getConsistencyText(r)}</td>
+      <td class="col-group-q">${getMatchText(r)}</td>
+
       <td><span class="tag ${pretestClass}">${pretestText}</span></td>
       <td><span class="tag ${savedClass}">${savedText}</span></td>
     </tr>`;
@@ -140,10 +195,13 @@ function exportJSON() {
 
 function exportCSV() {
   if (!currentData.length) return alert('暂无数据');
+
+  // ✅ 修改点：表头与导出字段与新版 index.html / admin 显示一致
   const rows = [[
     '研究编码','提交时间','实际年龄','最高频率','听力年龄','综合评分',
-    '听觉范围','音高辨识','噪声耐受','敏感度','使用习惯',
-    '日剂量比(%)','噪声偏移(dB)','年龄偏移(dB)','预测偏移(dB)','存活率(%)',
+    '听觉范围','噪声耐受','音量控制','时长控制','场景安全',
+    '日剂量比(%)','噪声性残余(dB HL)','年龄偏移(dB HL)','预测偏移(dB HL)','存活率(%)',
+    '重复一致性','匹配不一致(频点数)',
     '前测完成','保存状态'
   ]];
 
@@ -151,12 +209,16 @@ function exportCSV() {
     const rep = r.report || {};
     const r5 = rep.radar5 || {};
     const split = r.causeSplit || {};
+    const residual = getResidualOffset(split);
+    const cons = getConsistencyText(r);
+    const match = getMatchText(r);
+
     rows.push([
-      r.researchCode || '', 
-      r.timestamp || '', 
-      r.userAge || '', 
-      r.maxFreq || '', 
-      r.displayHearingAge || '', 
+      r.researchCode || '',
+      r.timestamp || '',
+      r.userAge || '',
+      r.maxFreq || '',
+      r.displayHearingAge || '',
       rep.overall != null ? rep.overall : '',
       r5.hearingRange != null ? r5.hearingRange : '',
       r5.noiseTolerance != null ? r5.noiseTolerance : '',
@@ -164,10 +226,12 @@ function exportCSV() {
       r5.timeCtrl != null ? r5.timeCtrl : '',
       r5.sceneSafe != null ? r5.sceneSafe : '',
       rep.doseRatio != null ? rep.doseRatio : '',
-      split.avgNoiseOffset != null ? split.avgNoiseOffset : '',
+      residual != null ? residual : '',
       split.avgAgeOffset != null ? split.avgAgeOffset : '',
       rep.predictedOffset != null ? rep.predictedOffset : '',
       rep.survivalRate != null ? rep.survivalRate : '',
+      cons,
+      match,
       r.pretestCompleted ? '已完成' : '未完成',
       r.savedByUser ? '已保存' : '未保存'
     ]);
@@ -177,7 +241,7 @@ function exportCSV() {
     const s = String(cell == null ? '' : cell);
     return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
   }).join(',')).join('\n');
-  
+
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   download(blob, 'hearing_records_' + new Date().toISOString().slice(0,10) + '.csv');
 }
