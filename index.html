@@ -143,6 +143,9 @@
                font-size:11px; font-weight:600; display:none;
                background:#1e3a5f; color:#93c5fd; }
   #hudPreset.show { display:inline-block; }
+  #hudSaturation { display:none; margin-top:6px; padding:5px 8px; background:#3b1f1f;
+                   border-left:2px solid #ef4444; border-radius:4px; font-size:10px;
+                   color:#fca5a5; line-height:1.4; }
   #topoLegend { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.78);
                 padding:7px 12px; border-radius:9px; font-size:11px; line-height:1.55; pointer-events:none; }
   #topoLegend .line { display:flex; align-items:center; gap:6px; }
@@ -175,6 +178,8 @@
   #recoveryPanel { margin-top:12px; padding:11px; background:#0f172a;
                    border-radius:10px; border:1px solid #1e293b; }
   #recoveryPanel h4 { font-size:12px; color:#93c5fd; margin-bottom:8px; }
+  #recoveryLiveReadout { font-size:12px; color:#60a5fa; margin:6px 0 2px;
+                         text-align:center; min-height:16px; }
   #recoveryCurve { display:block; width:100%; }
   .import-banner { display:flex; align-items:center; gap:10px; padding:11px 14px;
                    background:#1a2e1a; border:1px solid #15803d; border-radius:12px;
@@ -479,7 +484,7 @@
         <details class="basis">
           <summary>📖 估算依据与信度说明</summary>
           <div class="content">
-            <p style="margin-bottom:10px;">听力年龄匹配：将 9 个正式频率的听到/未听到模式与候选年龄参考模式逐点比对，取不一致数最小者。若匹配年龄小于实际年龄，显示为实际年龄。</p>
+            <p style="margin-bottom:10px;">听力年龄匹配：将 9 个正式频点的听到/未听到模式与各候选年龄的预期模式逐点比对，取<b>匹配点数最多者</b>；平局时优先选<b>最接近实际年龄</b>的候选年龄，避免把 20 岁误判成 22 岁。参考模式采用<b>连续插值</b>（AGE_MAXFREQ_POINTS 折线），而非阶梯函数。</p>
             <p style="margin-bottom:10px;">年龄性偏移：依据 ISO 7029:2017，18 岁为听阈基准年龄。20 岁年龄性偏移约 0.1 dB，四舍五入显示为 0。</p>
             <p style="margin-bottom:10px;">信度自证：16 kHz 与 10 kHz 各重复一次，取最后一次稳定响应。重复不一致数会显示在结果中。Békésy 升降法的重测标准差约 3.87 dB，本工具的简化单次主观法精度低于此，结果仅作筛查提示。</p>
             <p style="margin-bottom:10px;">音量校准：正式测听前播放 1 kHz 参考音，让用户在固定系统音量下完成全部频率。校准只控制音量水平，无法修正耳机频响缺陷。</p>
@@ -487,14 +492,14 @@
               <thead><tr><th>最高频率</th><th>估算听力年龄</th></tr></thead>
               <tbody>
                 <tr><td>20000 Hz</td><td>约 18 岁</td></tr>
-                <tr><td>19000 Hz</td><td>约 22 岁</td></tr>
-                <tr><td>18000 Hz</td><td>约 25 岁</td></tr>
-                <tr><td>17000 Hz</td><td>约 28 岁</td></tr>
-                <tr><td>16000 Hz</td><td>约 33 岁</td></tr>
-                <tr><td>14000 Hz</td><td>约 38 岁</td></tr>
-                <tr><td>12000 Hz</td><td>约 43 岁</td></tr>
-                <tr><td>10000 Hz</td><td>约 48 岁</td></tr>
-                <tr><td>8000 Hz</td><td>约 53 岁</td></tr>
+                <tr><td>19000 Hz</td><td>约 19–23 岁</td></tr>
+                <tr><td>18000 Hz</td><td>约 24–27 岁</td></tr>
+                <tr><td>17000 Hz</td><td>约 30 岁左右</td></tr>
+                <tr><td>16000 Hz</td><td>约 33 岁左右</td></tr>
+                <tr><td>14000 Hz</td><td>约 38 岁左右</td></tr>
+                <tr><td>12000 Hz</td><td>约 44 岁左右</td></tr>
+                <tr><td>10000 Hz</td><td>约 49 岁左右</td></tr>
+                <tr><td>8000 Hz</td><td>约 55 岁左右</td></tr>
               </tbody>
             </table>
           </div>
@@ -720,6 +725,9 @@
               </div>
             </div>
             <div id="hudPreset"></div>
+            <div id="hudSaturation">
+              ⚠️ 模型饱和：剂量远超损伤阈值，存活率显示示意性下限（约 1.5%），非真实全部死亡
+            </div>
           </div>
           <div id="topoLegend">
             <div class="line"><span class="dot" style="background:#4ade80;"></span>健康</div>
@@ -754,6 +762,9 @@
           <div class="field">
             <label>🛌 停曝后经过天数：<span class="value" id="afterVal">0 天</span></label>
             <input type="range" id="afterSlider" min="0" max="365" value="0" step="1">
+            <p style="font-size:11px; color:#64748b; margin-top:6px; line-height:1.6;">
+              💡 拖动此滑块查看 TTS 恢复过程。前 30 天恢复最快，90 天后趋于稳定，365 天时基本形成 PTS 固化。
+            </p>
           </div>
           <div class="switch-row">
             <button class="switch-btn" id="protectVol" type="button">🛡️ 限音量 ≤60%</button>
@@ -775,6 +786,7 @@
           </div>
           <div id="recoveryPanel">
             <h4>📉 停曝后恢复曲线（TTS → PTS）</h4>
+            <p id="recoveryLiveReadout"></p>
             <canvas id="recoveryCurve"></canvas>
           </div>
         </div>
@@ -818,26 +830,29 @@
     <p><code>warning = max(0, (日剂量比 − 0.3) × 2.5)</code></p>
     <p><code>rawE = (excess + warning) × 天数 × 恢复因子 × 0.005</code></p>
     <p><code>E = log(1 + rawE) × 3</code></p>
-    <h3>3. 毛细胞存活率映射（频率拓扑）</h3>
+    <h3>3. 毛细胞存活率映射（频率拓扑 + 渐近饱和）</h3>
     <p><code>阈值(t) = 0.5 + 15t</code>（t=0 底回高频，t=1 顶回低频）</p>
-    <p><code>细胞损伤 = clamp((E − 阈值(t)) / 0.5, 0, 1)</code></p>
+    <p><code>细胞损伤 = 1 − exp(−(E − 阈值(t)) / 3)</code>（渐近饱和，永不等于 1）</p>
+    <p>单细胞损伤上限 <code>0.985</code>，因此整体存活率下限约 <code>1.5%</code>。当剂量远超阈值时，HUD 会显示「模型饱和」，此时存活率是示意下限而非真实全部死亡。</p>
     <h3>4. TTS 与 PTS</h3>
     <p><b>TTS = 暂时性阈移</b>（Temporary Threshold Shift），<b>PTS = 永久性阈移</b>（Permanent Threshold Shift）。二者是暴露后的两种阈移结局，不是先后修复过程。</p>
     <p>可恢复比例 = <code>exp(−暴露天数 / 60)</code>；停曝后 t 天的残余 PTS = <code>永久部分 + 可恢复部分 × exp(−t / 30)</code>。</p>
+    <p>拖动「停曝后经过天数」滑块时，恢复曲线上的标记点会移动，面板下方实时显示当前停曝天数对应的存活率。</p>
     <h3>5. 四档预设参数</h3>
     <ul>
       <li><b>安全对照</b>：78 dB × 2h × 120天 → 全绿</li>
       <li><b>注意</b>：93 dB × 1h × 365天 → 底回约 19% 变黄</li>
       <li><b>警告</b>：95 dB × 4h × 730天 → 底回约 75% 变红/黑</li>
-      <li><b>危险</b>：102 dB × 6h × 1095天 → 全部 100% 变黑</li>
+      <li><b>危险</b>：102 dB × 6h × 1095天 → 全部趋近饱和，存活率约 2–10%</li>
     </ul>
     <h3>6. 风险等级：四档统一命名</h3>
     <p><b>四档：</b>安全 / 注意 / 警告 / 危险</p>
     <p><b>剂量档：</b>日剂量比 &lt;1 安全 ｜ 1~2 注意 ｜ 2~4 警告 ｜ &gt;4 危险</p>
     <p><b>毛细胞损伤档：</b>存活 &gt;90% 安全 ｜ 70~90% 注意 ｜ 30~70% 警告 ｜ &lt;30% 危险</p>
     <p><b>综合风险：</b>取剂量档与损伤档中<b>较严者</b></p>
-    <h3>7. 听力年龄计算</h3>
-    <p>将 9 个正式频点的听到/未听到模式与各候选年龄的预期模式逐点比对，取不一致数最小者；若匹配年龄小于实际年龄，显示为实际年龄。17k / 20k 等非单调响应会被完整纳入比对，不会只取最高频率。</p>
+    <h3>7. 听力年龄计算（连续插值 + 平局选最近年龄）</h3>
+    <p>各候选年龄的「预期最高可闻频率」按 <code>AGE_MAXFREQ_POINTS</code> 折线线性插值得到（如 20 岁 ≈ 19700 Hz，22 岁 ≈ 19300 Hz，25 岁 ≈ 18700 Hz），而不是阶梯函数。这样 19–23 岁的参考模式一致（"到 19k"），避免 20 岁用户被误判为 22 岁。</p>
+    <p>把 9 个正式频点的听到/未听到模式与各候选年龄的参考模式逐点比对，<b>取匹配点数最多者</b>；平局时优先选<b>最接近实际年龄</b>的候选年龄。若匹配年龄小于实际年龄，显示为实际年龄，文案说明"本次未检出高频听阈偏移"。</p>
     <h3>8. 年龄基线（M1）与成因拆分</h3>
     <p>20 岁基线：8k 约 5 dB，12.5k 约 16 dB，16k 约 26 dB，20k 约 42 dB。年龄修正量按 ISO 7029:2017、中华耳科学杂志 2020、中疾控张美辨团队 2025 推算。</p>
     <p>成因拆分中的「年龄性听阈偏移」与「噪声性残余偏移」<b>单位均为 dB HL</b>，后者 = 实测偏移 − 年龄可解释部分（不小于 0）。两者可相加，占比 = 残余 / (年龄 + 残余)。此拆分不涉及声压级 dB SPL。</p>
@@ -934,7 +949,10 @@
   function allocateCode(callback) {
     fetch(API_BASE + '/api/allocate-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
     .then(function (r) { if (!r.ok) throw new Error('服务器返回错误'); return r.json(); })
-    .then(function (data) { if (data && data.code && /^\d{4}$/.test(data.code)) { callback(data.code, 'server'); } else { throw new Error('返回格式异常'); } })
+    .then(function (data) {
+      if (data && data.code && /^\d{4}$/.test(data.code)) { callback(data.code, 'server'); }
+      else { throw new Error('返回格式异常'); }
+    })
     .catch(function (err) {
       console.warn('服务器分配失败，使用本地生成', err);
       var local = generateLocalCode();
@@ -1111,7 +1129,6 @@
     return 0;
   }
 
-  // 单位统一为 dB HL：年龄性偏移 + 噪声性残余，两者可相加
   function calcCauseSplit(responses, userAge) {
     var totalAge = 0, totalResidual = 0, count = 0;
     var details = [];
@@ -1144,9 +1161,36 @@
   }
 
   var FREQS = [8000, 10000, 12000, 14000, 16000, 17000, 18000, 19000, 20000];
-  var REPEAT_FREQS = [16000, 10000]; // 信度重复点
+  var REPEAT_FREQS = [16000, 10000];
   var FREQ_LABELS = ['8k', '10k', '12k', '14k', '16k', '17k', '18k', '19k', '20k'];
-  var CANDIDATE_AGES = [18, 19, 20, 22, 25, 28, 33, 38, 43, 48, 53];
+
+  // ✅ 连续插值：频率与年龄的映射遵循 AGE_MAXFREQ_POINTS 折线
+  var AGE_MAXFREQ_POINTS = [
+    [18, 20000], [20, 19700], [22, 19300], [24, 18900], [25, 18700],
+    [26, 18500], [28, 18000], [30, 17500], [33, 16500], [36, 15200],
+    [40, 13500], [45, 11500], [50, 9500], [55, 8000], [60, 7000]
+  ];
+  var CANDIDATE_AGES = [18,19,20,21,22,23,24,25,26,27,28,30,33,36,40,45,50,55,60];
+
+  function estimateNormalMaxFreq(age) {
+    if (age <= AGE_MAXFREQ_POINTS[0][0]) return AGE_MAXFREQ_POINTS[0][1];
+    var last = AGE_MAXFREQ_POINTS[AGE_MAXFREQ_POINTS.length - 1];
+    if (age >= last[0]) return last[1];
+    for (var i = 0; i < AGE_MAXFREQ_POINTS.length - 1; i++) {
+      var a1 = AGE_MAXFREQ_POINTS[i][0], f1 = AGE_MAXFREQ_POINTS[i][1];
+      var a2 = AGE_MAXFREQ_POINTS[i+1][0], f2 = AGE_MAXFREQ_POINTS[i+1][1];
+      if (age >= a1 && age <= a2) {
+        var t = (age - a1) / (a2 - a1);
+        return f1 + (f2 - f1) * t;
+      }
+    }
+    return 7000;
+  }
+
+  function getRefPattern(age) {
+    var maxF = estimateNormalMaxFreq(age);
+    return FREQS.map(function (f) { return f <= maxF ? 1 : 0; });
+  }
 
   var testState = {
     idx: 0, responses: [], repeatResponses: [],
@@ -1215,7 +1259,6 @@
     }
   }
 
-  // 开始测试：先进入音量校准
   function startTest() {
     var age = Number(ageInput.value);
     if (!age || age < 8 || age > 80) { alert('请输入 8~80 之间的年龄'); return; }
@@ -1232,7 +1275,6 @@
     if (typeof syncAgeStart === 'function') syncAgeStart();
   }
 
-  // 播放 1kHz 参考音
   function playCalibTone() {
     initAudio();
     stopTone();
@@ -1255,7 +1297,6 @@
 
   function playNextFreq() {
     if (!testState.running) return;
-
     var freq;
     if (testState.phase === 'main') {
       if (testState.idx >= FREQS.length) {
@@ -1269,7 +1310,6 @@
       if (testState.idx >= REPEAT_FREQS.length) { finishTest(); return; }
       freq = REPEAT_FREQS[testState.idx];
     }
-
     freqNum.textContent = freq;
     freqHint.textContent = '正在播放…请仔细听';
     updateProgress();
@@ -1346,21 +1386,29 @@
     show(testIntro);
   });
 
-  // 逐点比对完整 9 点响应
+  // ✅ 匹配点数最多者胜出；平局时选离实际年龄最近者
   function findBestMatchAge(responses, userAge) {
-    var best = { age: userAge, mismatches: Infinity, total: responses.length };
-    for (var c = 0; c < CANDIDATE_AGES.length; c++) {
-      var candAge = CANDIDATE_AGES[c];
-      var pattern = getRefPattern(candAge);
-      var mismatch = 0;
-      for (var i = 0; i < responses.length; i++) {
-        if (pattern[i] !== (responses[i].heard ? 1 : 0)) mismatch++;
+    var userPattern = responses.map(function (r) { return r.heard ? 1 : 0; });
+    var bestAge = userAge, bestScore = -1, bestDist = Infinity;
+    CANDIDATE_AGES.forEach(function (age) {
+      var refPattern = getRefPattern(age);
+      var score = 0;
+      for (var i = 0; i < userPattern.length; i++) {
+        if (userPattern[i] === refPattern[i]) score++;
       }
-      if (mismatch < best.mismatches) {
-        best = { age: candAge, mismatches: mismatch, total: responses.length };
+      var dist = Math.abs(age - userAge);
+      if (score > bestScore || (score === bestScore && dist < bestDist)) {
+        bestScore = score;
+        bestAge = age;
+        bestDist = dist;
       }
-    }
-    return best;
+    });
+    return {
+      age: bestAge,
+      score: bestScore,
+      mismatches: userPattern.length - bestScore,
+      total: userPattern.length
+    };
   }
 
   function computeRepeatConsistency(mainResponses, repeatResponses) {
@@ -1590,19 +1638,6 @@
     ctx.setLineDash([]);
   }
 
-  function getRefPattern(age) {
-    var maxF = 20000;
-    if (age >= 53) maxF = 8000;
-    else if (age >= 48) maxF = 10000;
-    else if (age >= 43) maxF = 12000;
-    else if (age >= 38) maxF = 14000;
-    else if (age >= 33) maxF = 16000;
-    else if (age >= 28) maxF = 17000;
-    else if (age >= 25) maxF = 18000;
-    else if (age >= 22) maxF = 19000;
-    return FREQS.map(function (f) { return f <= maxF ? 1 : 0; });
-  }
-
   var inheritedMaxFreq = null;
   var inheritedHearingAge = null;
 
@@ -1636,13 +1671,11 @@
   var SCENE_NAME = { commute:'通勤', work:'学习/工作', sleep:'睡眠', sport:'运动', entertain:'娱乐' };
   var TYPE_NAME  = { inEar:'入耳式', overEar:'头戴式', bone:'骨传导/开放式' };
 
-  // 音量百分比 → 估计声级（dB SPL），与模块③共用一个映射
   function VOLUME_TO_DB(volPct) {
     var db = 85 + (volPct - 60) * 0.5;
     return Math.max(60, Math.min(105, db));
   }
 
-  // 开始使用年龄滑块
   var ageStartSlider = $('ageStartSlider');
   var ageStartVal = $('ageStartVal');
   var ageStartHint = $('ageStartHint');
@@ -1942,7 +1975,13 @@
     var totalExcess = excess + warning; var recoveryFactor = Math.max(0.3, 1 - days / 5000);
     var rawE = totalExcess * days * recoveryFactor * 0.005; var E = Math.log(1 + rawE) * 3;
     var totalHealth = 0;
-    for (var i = 0; i < 120; i++) { var t = i / 119; var threshold = 0.5 + 15 * t; var damage = Math.max(0, Math.min(1, (E - threshold) / 0.5)); totalHealth += (1 - damage); }
+    for (var i = 0; i < 120; i++) {
+      var t = i / 119;
+      var threshold = 0.5 + 15 * t;
+      var x = Math.max(0, E - threshold);
+      var damage = Math.min(0.985, 1 - Math.exp(-x / 3));
+      totalHealth += (1 - damage);
+    }
     return (totalHealth / 120) * 100;
   }
 
@@ -2066,7 +2105,7 @@
         setTimeout(function () {
           if (typeof window.__initMiniCochlea === 'function') { window.__initMiniCochlea(); }
           if (typeof window.__updateMiniCochlea === 'function') {
-            var eYears = exposureYears; var eDays = exposureDays;
+            var eDays = exposureDays;
             var leq8h = currentDb + 10 * Math.log10(state.daily / 8); var doseRatio = Math.pow(2, (leq8h - 85) / 3);
             var excess = Math.max(0, doseRatio - 1); var warning = doseRatio > 0.3 ? (doseRatio - 0.3) * 2.5 : 0;
             var totalExcess = excess + warning; var recoveryFactor = Math.max(0.3, 1 - eDays / 5000);
@@ -2279,7 +2318,8 @@ function calcCumulativeExposure(db, hours, days) {
 
 function cellBaseDamage(t, E) {
   const threshold = 0.5 + 15 * t;
-  return Math.max(0, Math.min(1, (E - threshold) / 0.5));
+  const excess = Math.max(0, E - threshold);
+  return 1 - Math.exp(-excess / 3);
 }
 
 function applyTTSRecovery(baseDamage, days, afterDays) {
@@ -2297,17 +2337,20 @@ const COLOR_DANGER = new THREE.Color(0xef4444);
 const COLOR_DEAD = new THREE.Color(0x1a1a1a);
 const tmpColor = new THREE.Color();
 
+const MAX_CELL_DAMAGE = 0.985;
+
 function applyDamageToCells(cells, E, days, afterDays) {
-  let totalHealth = 0, deadCount = 0;
+  let totalHealth = 0, deadCount = 0, saturated = false;
   for (let i = 0; i < cells.length; i++) {
     const cell = cells[i];
     const baseDamage = cellBaseDamage(cell.t, E);
-    const finalDamage = applyTTSRecovery(baseDamage, days, afterDays);
+    const finalDamage = Math.min(MAX_CELL_DAMAGE, applyTTSRecovery(baseDamage, days, afterDays));
     cell.targetDamage = finalDamage;
     totalHealth += (1 - finalDamage);
     if (finalDamage >= 0.95) deadCount++;
+    if (finalDamage >= MAX_CELL_DAMAGE - 0.001) saturated = true;
   }
-  return { survivalRate: (totalHealth / cells.length) * 100, deadCount };
+  return { survivalRate: (totalHealth / cells.length) * 100, deadCount, saturated };
 }
 
 function applyDamageImmediate(cells) {
@@ -2443,6 +2486,7 @@ if (canvasBox) {
   const hudSurvival = document.getElementById('hudSurvival');
   const hudOverallRisk = document.getElementById('hudOverallRisk');
   const hudPreset = document.getElementById('hudPreset');
+  const hudSaturation = document.getElementById('hudSaturation');
   const doseStat = document.getElementById('doseStat');
   const effDbStat = document.getElementById('effDbStat');
   const effHoursStat = document.getElementById('effHoursStat');
@@ -2507,6 +2551,10 @@ if (canvasBox) {
     survivalStat.textContent = result.survivalRate.toFixed(1);
     deadStat.textContent = result.deadCount;
 
+    if (hudSaturation) {
+      hudSaturation.style.display = result.saturated ? 'block' : 'none';
+    }
+
     const doseSev = doseSeverity(doseRatio);
     const dmgSev = damageSeverity(result.survivalRate);
     const overallSev = Math.max(doseSev, dmgSev);
@@ -2546,7 +2594,7 @@ if (canvasBox) {
       const af = (s / steps) * maxAfter;
       let th = 0;
       for (let i = 0; i < full.cells.length; i++) {
-        th += (1 - applyTTSRecovery(cellBaseDamage(full.cells[i].t, E_end), days, af));
+        th += (1 - Math.min(MAX_CELL_DAMAGE, applyTTSRecovery(cellBaseDamage(full.cells[i].t, E_end), days, af)));
       }
       samples.push({ af, survival: (th / full.cells.length) * 100 });
     }
@@ -2592,13 +2640,35 @@ if (canvasBox) {
     const cur = samples.reduce((best, s) =>
       Math.abs(s.af - currentAfterDays) < Math.abs(best.af - currentAfterDays) ? s : best, samples[0]);
     const cx = xFor(currentAfterDays), cy = yFor(cur.survival);
+
     ctx.beginPath();
-    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(96,165,250,0.25)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
     ctx.fillStyle = '#60a5fa';
     ctx.fill();
     ctx.strokeStyle = '#0b1120';
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    const liveEl = document.getElementById('recoveryLiveReadout');
+    if (liveEl) {
+      const baseline = samples[0].survival;
+      const recovered = cur.survival - baseline;
+      let timeLabel;
+      if (currentAfterDays === 0) timeLabel = '暴露结束时';
+      else timeLabel = '停曝 ' + currentAfterDays + ' 天';
+      let recoveredText = '';
+      if (currentAfterDays > 0 && recovered > 0.05) {
+        recoveredText = '（较暴露结束恢复 +' + recovered.toFixed(1) + ' 个百分点）';
+      } else if (currentAfterDays > 0) {
+        recoveredText = '（该剂量下恢复接近饱和，无进一步明显恢复）';
+      }
+      liveEl.innerHTML = '当前：<b>' + timeLabel + '</b> → 存活率 <b>' + cur.survival.toFixed(1) + '%</b> ' + recoveredText;
+    }
 
     ctx.fillStyle = '#64748b';
     ctx.font = '10px system-ui, sans-serif';
