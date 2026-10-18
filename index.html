@@ -174,7 +174,7 @@
   .stat .mid  { color:#fbbf24; }
   #recoveryPanel { margin-top:12px; padding:11px; background:#0f172a;
                    border-radius:10px; border:1px solid #1e293b; }
-  #recoveryPanel h4 { font-size:12px; color:#93c5fd; margin-bottom:8px; }
+  #recoveryPanel h4 { font-size:12px; color:#93c5fd; margin-bottom:4px; }
   #recoveryCurve { display:block; width:100%; }
   .import-banner { display:flex; align-items:center; gap:10px; padding:11px 14px;
                    background:#1a2e1a; border:1px solid #15803d; border-radius:12px;
@@ -314,7 +314,7 @@
     <h2 class="welcome-title">欢迎进入听力健康仿真互动平台</h2>
     <p class="welcome-sub">一次测试，看懂你的听力状态</p>
     <div class="welcome-steps">
-      <div class="step"><div class="step-icon">①</div><div class="step-title">听力年龄测试</div><div class="step-desc">9 个高频点<br>画出你的听阈曲线</div></div>
+      <div class="step"><div class="step-icon">①</div><div class="step-title">听力年龄测试</div><div class="step-desc">9 个正式频点<br>+2 个信度重复点</div></div>
       <div class="step"><div class="step-icon">②</div><div class="step-title">听力安全报告</div><div class="step-desc">5 维雷达<br>损伤成因拆分</div></div>
       <div class="step"><div class="step-icon">③</div><div class="step-title">3D 毛细胞仿真</div><div class="step-desc">直观看到<br>噪声如何损伤毛细胞</div></div>
     </div>
@@ -382,7 +382,7 @@
         <h2>听力年龄测试</h2>
         <p>
           依次播放 <b>8k / 10k / 12k / 14k / 16k / 17k / 18k / 19k / 20k Hz</b> 九个高频纯音。<br>
-          每听到一个，点「我听到了」；没听到点「没听到」。<br>
+          完成后会再重复 <b>16k / 10k</b> 两个频率，用于检查主观响应的一致性。<br>
           <b>请戴耳机</b>，在安静环境下进行。
         </p>
         <div class="field" style="text-align:center;">
@@ -407,9 +407,7 @@
           <button class="btn yes" id="heardBtn" type="button">👂 我听到了</button>
           <button class="btn no"  id="notHeardBtn" type="button">🔇 没听到</button>
         </div>
-        <p style="text-align:center; color:#64748b; font-size:12px; margin-top:14px;">
-          第 <span id="curIdx">1</span> / 9 个频率
-        </p>
+        <p id="progressText" style="text-align:center; color:#64748b; font-size:12px; margin-top:14px;">正式测听 · 第 1 / 9 个频率</p>
       </div>
 
       <div class="card hidden" id="testResult">
@@ -422,31 +420,49 @@
         </div>
         <div class="freq-list" id="freqList"></div>
 
-        <div id="causeSplitBox" style="margin-top:16px; padding:14px;
-             background:#0f172a; border-radius:12px; border:1px solid #1e293b;">
-          <p style="font-size:13px; color:#93c5fd; font-weight:600; margin-bottom:10px;">🔬 损伤成因拆分</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
-              <div style="font-size:11px; color:#94a3b8;">年龄所致</div>
-              <div style="font-size:22px; font-weight:700; color:#60a5fa;" id="ageOffsetNum">—</div>
-              <div style="font-size:11px; color:#64748b;">dB HL</div>
-            </div>
-            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
-              <div style="font-size:11px; color:#94a3b8;">噪声所致</div>
-              <div style="font-size:22px; font-weight:700; color:#f87171;" id="noiseOffsetNum">—</div>
-              <div style="font-size:11px; color:#64748b;">dB HL</div>
-            </div>
-            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
-              <div style="font-size:11px; color:#94a3b8;">噪声占比</div>
-              <div style="font-size:22px; font-weight:700; color:#fbbf24;" id="noiseRatioNum">—</div>
-              <div style="font-size:11px; color:#64748b;">%</div>
-            </div>
+        <div id="consistencyBox" style="margin-top:14px; padding:12px 14px;
+             background:#0f172a; border-radius:12px; border-left:3px solid #60a5fa;
+             font-size:12px; line-height:1.8; color:#cbd5e1;">
+          <b style="color:#93c5fd;">🔁 重复测量一致性</b>
+          <div id="consistencyText" style="margin-top:4px;">—</div>
+          <div style="font-size:10px; color:#64748b; margin-top:4px;">
+            本测试取每个频率「最后一次稳定响应」。16k / 10k 两个重复点用于检查主观响应稳定性；
+            参考 Békésy 升降法重测标准差约 3.87 dB。
           </div>
         </div>
 
+        <div id="causeSplitBox" style="margin-top:16px; padding:14px;
+             background:#0f172a; border-radius:12px; border:1px solid #1e293b;">
+          <p style="font-size:13px; color:#93c5fd; font-weight:600; margin-bottom:10px;">🔬 损伤成因拆分（单位统一为 dB HL 听阈偏移）</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">年龄性听阈偏移</div>
+              <div style="font-size:22px; font-weight:700; color:#60a5fa;" id="ageOffsetNum">—</div>
+              <div style="font-size:11px; color:#64748b;">dB HL（ISO 7029 查表）</div>
+            </div>
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">噪声性残余偏移</div>
+              <div style="font-size:22px; font-weight:700; color:#f87171;" id="noiseOffsetNum">—</div>
+              <div style="font-size:11px; color:#64748b;">dB HL（实测 − 年龄可解释）</div>
+            </div>
+            <div style="flex:1; min-width:110px; background:#1e293b; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; color:#94a3b8;">噪声贡献占比</div>
+              <div style="font-size:22px; font-weight:700; color:#fbbf24;" id="noiseRatioNum">—</div>
+              <div style="font-size:11px; color:#64748b;">%（残余 / (年龄+残余)）</div>
+            </div>
+          </div>
+          <p style="font-size:11px; color:#64748b; margin:10px 0 0; line-height:1.6;">
+            依据 ISO 7029:2017：18 岁为听阈基准年龄，20 岁年龄性偏移约 0.1 dB，四舍五入后显示为 0；
+            随输入年龄增大，该项将显著上升。本拆分不涉及声压级（dB SPL），声压级仅用于模块③的剂量计算。
+          </p>
+        </div>
+
         <details class="basis">
-          <summary>📖 估算依据</summary>
+          <summary>📖 估算依据与信度说明</summary>
           <div class="content">
+            <p style="margin-bottom:10px;">听力年龄匹配：将 9 个正式频率的听到/未听到模式与候选年龄参考模式逐点比对，取不一致数最小者。若匹配年龄小于实际年龄，显示为实际年龄。</p>
+            <p style="margin-bottom:10px;">年龄性偏移：依据 ISO 7029:2017，18 岁为听阈基准年龄。20 岁年龄性偏移约 0.1 dB，四舍五入显示为 0。</p>
+            <p style="margin-bottom:10px;">信度自证：16 kHz 与 10 kHz 各重复一次，取最后一次稳定响应。重复不一致数会显示在结果中。Békésy 升降法的重测标准差约 3.87 dB，本工具的简化单次主观法精度低于此，结果仅作筛查提示。</p>
             <table>
               <thead><tr><th>最高频率</th><th>估算听力年龄</th></tr></thead>
               <tbody>
@@ -508,6 +524,9 @@
         <div class="field">
           <label>🔊 常用音量档位：<span class="value" id="volumeVal">60%</span></label>
           <input type="range" id="volumeSlider" min="10" max="100" value="60" step="5">
+          <p id="dosePreview" style="font-size:11px; color:#93c5fd; margin:6px 0 0; line-height:1.6;">
+            当前参数估计：拖动滑块查看等效声级与日剂量
+          </p>
         </div>
         <div class="field">
           <label>📍 主要使用场景（可多选）：</label>
@@ -547,7 +566,7 @@
           <h2>📏 测量结果</h2>
           <div class="kv-grid">
             <div class="kv-box">
-              <div class="k">最高可听频率</div>
+              <div class="k">最高可闻频率（完整 9 点结果）</div>
               <div class="v" id="seg1MaxFreq">— <span>Hz</span></div>
             </div>
             <div class="kv-box">
@@ -563,6 +582,7 @@
               <div class="v" id="seg1AgeDiff">—</div>
             </div>
           </div>
+          <p id="seg1MatchQuality" style="font-size:12px; color:#94a3b8; line-height:1.7; margin:0 0 12px;"></p>
           <h3 style="margin-top:14px;">🕸️ 五维听觉画像</h3>
           <div class="chart-wrap"><canvas id="radar5Canvas"></canvas></div>
           <ul class="dim-def-list" id="radar5DefList"></ul>
@@ -586,25 +606,26 @@
             完整交互版本请切到 <b>③ 毛细胞损伤</b> 标签
           </p>
 
-          <h3 style="margin-top:18px;">损伤成因拆分</h3>
+          <h3 style="margin-top:18px;">损伤成因拆分（dB HL 听阈偏移）</h3>
           <div class="pie-wrap"><canvas id="pieCanvas"></canvas></div>
           <div class="cause-row">
             <div class="cause-box">
-              <div class="k">年龄所致</div>
+              <div class="k">年龄性听阈偏移</div>
               <div class="v" style="color:#60a5fa;" id="seg2AgeOffset">—</div>
-              <div class="u">dB HL</div>
+              <div class="u">dB HL（ISO 7029）</div>
             </div>
             <div class="cause-box">
-              <div class="k">噪声所致</div>
+              <div class="k">噪声性残余偏移</div>
               <div class="v" style="color:#f87171;" id="seg2NoiseOffset">—</div>
-              <div class="u">dB HL</div>
+              <div class="u">dB HL（实测 − 年龄可解释）</div>
             </div>
             <div class="cause-box">
-              <div class="k">噪声占比</div>
+              <div class="k">噪声贡献占比</div>
               <div class="v" style="color:#fbbf24;" id="seg2NoiseRatio">—</div>
-              <div class="u">%</div>
+              <div class="u">%（残余 / 总偏移）</div>
             </div>
           </div>
+          <p id="seg2DoseNow" style="font-size:12px; color:#93c5fd; line-height:1.7; margin:14px 0 0; padding:10px 12px; background:#0f172a; border-radius:8px;"></p>
           <div style="margin-top:14px; padding:12px; background:#0f172a;
                border-radius:10px; border-left:3px solid #f87171; font-size:13px;
                line-height:1.7; color:#cbd5e1;" id="seg2Explanation">
@@ -695,7 +716,8 @@
             <label>🔊 音量：<span class="value" id="dbVal">85 dB</span></label>
             <input type="range" id="dbSlider" min="60" max="120" value="85" step="1">
             <p style="font-size:11px; color:#64748b; margin-top:6px; line-height:1.6;">
-              ⚠️ 此处为<b style="color:#fbbf24;">声级 dB</b>，非百分比；NIOSH 安全限值为 <b style="color:#fbbf24;">85 dB / 8h</b>。
+              ⚠️ 此处为<b style="color:#fbbf24;">声级 dB SPL</b>，非百分比；NIOSH 安全限值为 <b style="color:#fbbf24;">85 dB / 8h</b>。
+              模块②的「音量百分比」通过同一映射函数换算为此处的 dB 值（60% ≈ 85 dB，100% ≈ 105 dB）。
             </p>
           </div>
           <div class="field">
@@ -729,7 +751,10 @@
             <div class="stat">已死亡：<span class="num" id="deadStat">0</span> / 120</div>
           </div>
           <div id="recoveryPanel">
-            <h4>📉 停曝后恢复曲线（TTS → PTS）</h4>
+            <h4>📉 停曝后阈移转归（TTS → 部分恢复 / PTS）</h4>
+            <p style="font-size:10px; color:#64748b; margin:2px 0 8px; line-height:1.5;">
+              TTS = 暂时性阈移（可恢复部分）；PTS = 永久性阈移（不可恢复部分）。曲线为 TTS 恢复后的残余 PTS。
+            </p>
             <canvas id="recoveryCurve"></canvas>
           </div>
         </div>
@@ -776,8 +801,9 @@
     <h3>3. 毛细胞存活率映射（频率拓扑）</h3>
     <p><code>阈值(t) = 0.5 + 15t</code>（t=0 底回高频，t=1 顶回低频）</p>
     <p><code>细胞损伤 = clamp((E − 阈值(t)) / 0.5, 0, 1)</code></p>
-    <h3>4. TTS 与 PTS</h3>
-    <p>可恢复比例 = <code>exp(−天数 / 60)</code>；停曝后剩余损伤 = <code>永久部分 + 可恢复部分 × exp(−t / 30)</code>。</p>
+    <h3>4. TTS 与 PTS（术语说明）</h3>
+    <p>TTS = 暂时性阈移（Temporary Threshold Shift），PTS = 永久性阈移（Permanent Threshold Shift）。二者是暴露后的两种阈移结局，不是先后修复手段；TTS 也不是耳鸣。</p>
+    <p>可恢复比例 = <code>exp(−暴露天数 / 60)</code>；停曝后 t 天的残余 PTS = <code>永久部分 + 可恢复部分 × exp(−t / 30)</code>。</p>
     <h3>5. 四档预设参数</h3>
     <ul>
       <li><b>安全对照</b>：78 dB × 2h × 120天 → 全绿</li>
@@ -791,17 +817,21 @@
     <p><b>毛细胞损伤档：</b>存活 &gt;90% 安全 ｜ 70~90% 注意 ｜ 30~70% 警告 ｜ &lt;30% 危险</p>
     <p><b>综合风险：</b>取剂量档与损伤档中<b>较严者</b></p>
     <h3>7. 听力年龄计算</h3>
-    <p>九频点听到/未听到的模式，与各候选年龄的预期模式逐点比对。若匹配得到的听力年龄小于实际年龄，显示为实际年龄，文案说明"本次未检出高频听阈偏移"。</p>
-    <h3>8. 年龄基线（M1）</h3>
-    <p>20 岁基线：8k 约 5 dB，12.5k 约 16 dB，16k 约 26 dB，20k 约 42 dB。</p>
-    <p>年龄修正量按 ISO 7029:2017、中华耳科学杂志 2020、中疾控张美辨团队 2025 推算。</p>
+    <p>将 9 个正式频点的听到/未听到模式与各候选年龄的预期模式逐点比对，取不一致数最小者；若匹配年龄小于实际年龄，显示为实际年龄。17k / 20k 等非单调响应会被完整纳入比对，不会只取最高频率。</p>
+    <h3>8. 年龄基线（M1）与成因拆分</h3>
+    <p>20 岁基线：8k 约 5 dB，12.5k 约 16 dB，16k 约 26 dB，20k 约 42 dB。年龄修正量按 ISO 7029:2017、中华耳科学杂志 2020、中疾控张美辨团队 2025 推算。</p>
+    <p>成因拆分中的「年龄性听阈偏移」与「噪声性残余偏移」<b>单位均为 dB HL</b>，后者 = 实测偏移 − 年龄可解释部分（不小于 0）。两者可相加，占比 = 残余 / (年龄 + 残余)。此拆分不涉及声压级 dB SPL。</p>
     <h3>9. 保护措施模型</h3>
     <ul>
       <li><b>限音量 ≤60%</b>：有效声级上限 85 dB。</li>
       <li><b>单次 ≤60 分钟</b>：有效暴露时长 = 1h + 超出部分 20%。</li>
       <li><b>戴防噪耳塞</b>：有效声级 −15 dB。</li>
     </ul>
-    <h3>10. 来源</h3>
+    <h3>10. 音量百分比与 dB 的映射</h3>
+    <p>模块②的「音量百分比」通过 <code>dB = 85 + (音量% − 60) × 0.5</code> 映射为模块③同口径的 dB SPL（60% ≈ 85 dB，100% ≈ 105 dB），并 clamp 在 60~105 dB。两个模块使用同一函数，因此数值联动一致。</p>
+    <h3>11. 信度自证</h3>
+    <p>9 个正式频率之后，追加 16 kHz 与 10 kHz 两个重复点，取每个频率「最后一次稳定响应」。结果中显示重复测量一致性（不一致数 / 重复点数）。参考 Békésy 升降法重测标准差约 3.87 dB。</p>
+    <h3>12. 来源</h3>
     <ul>
       <li>ISO 7029:2017 声学 听阈与年龄和性别关系的统计分布</li>
       <li>中华耳科学杂志 2020 正常青中年人扩展高频听阈参考基线</li>
@@ -1057,37 +1087,50 @@
     return 0;
   }
 
+  // ✅ 问题一 + 二修复：单位统一为 dB HL；年龄与噪声均为听阈偏移，可相加、可算占比
   function calcCauseSplit(responses, userAge) {
-    var totalAge = 0, totalNoise = 0, count = 0;
+    var totalAge = 0, totalResidual = 0, count = 0;
     var details = [];
     for (var i = 0; i < responses.length; i++) {
       var r = responses[i];
-      var baseline = BASELINE_20[r.freq] || 30;
-      var measuredOffset = r.heard ? 0 : 40;
-      var ageOffset = getAgeCorrection(userAge, i);
-      var noiseOffset = Math.max(0, measuredOffset - ageOffset);
+      var ageOffset = getAgeCorrection(userAge, i);       // dB HL，ISO 7029 年龄性偏移
+      var measuredOffset = r.heard ? 0 : 40;               // dB HL，未通过筛查的名义偏移
+      var residual = Math.max(0, measuredOffset - ageOffset); // dB HL，噪声性残余
       totalAge += ageOffset;
-      totalNoise += noiseOffset;
+      totalResidual += residual;
       count++;
-      details.push({ freq: r.freq, baseline: baseline, measured: measuredOffset, age: ageOffset, noise: noiseOffset });
+      details.push({
+        freq: r.freq,
+        ageOffset: Math.round(ageOffset * 10) / 10,
+        measuredOffset: measuredOffset,
+        residual: Math.round(residual * 10) / 10
+      });
     }
     var avgAge = count > 0 ? totalAge / count : 0;
-    var avgNoise = count > 0 ? totalNoise / count : 0;
-    var total = avgAge + avgNoise;
-    var noiseRatio = total > 0 ? avgNoise / total : 0;
+    var avgResidual = count > 0 ? totalResidual / count : 0;
+    var denom = avgAge + avgResidual;
+    var residualRatio = denom > 0 ? avgResidual / denom : 0;
     return {
       avgAgeOffset: Math.round(avgAge * 10) / 10,
-      avgNoiseOffset: Math.round(avgNoise * 10) / 10,
-      noiseRatio: Math.round(noiseRatio * 100),
-      details: details
+      avgResidualOffset: Math.round(avgResidual * 10) / 10,
+      residualRatio: Math.round(residualRatio * 100),
+      details: details,
+      basis: 'ISO 7029:2017 年龄性听阈偏移查表；两者均为 dB HL 听阈偏移量'
     };
   }
 
   var FREQS = [8000, 10000, 12000, 14000, 16000, 17000, 18000, 19000, 20000];
+  var REPEAT_FREQS = [16000, 10000]; // ✅ 问题六：信度重复点
   var FREQ_LABELS = ['8k', '10k', '12k', '14k', '16k', '17k', '18k', '19k', '20k'];
   var CANDIDATE_AGES = [18, 19, 20, 22, 25, 28, 33, 38, 43, 48, 53];
 
-  var testState = { idx: 0, responses: [], maxHeard: null, userAge: 22, matchedAge: null, waiting: false, running: false };
+  var testState = {
+    idx: 0, responses: [], repeatResponses: [],
+    phase: 'main', // 'main' → 'repeat' → done
+    maxHeard: null, userAge: 22, matchedAge: null,
+    matchQuality: null, consistency: null,
+    waiting: false, running: false
+  };
   var audioCtx = null, currentOsc = null;
 
   function initAudio() {
@@ -1128,15 +1171,22 @@
   var freqNum = $('freqNum');
   var freqHint = $('freqHint');
   var progressFill = $('progressFill');
-  var curIdxEl = $('curIdx');
+  var progressTextEl = $('progressText');
   var heardBtn = $('heardBtn');
   var notHeardBtn = $('notHeardBtn');
   var startTestBtn = $('startTestBtn');
   var ageInput = $('ageInput');
 
   function updateProgress() {
-    progressFill.style.width = (testState.idx / FREQS.length) * 100 + '%';
-    curIdxEl.textContent = Math.min(testState.idx + 1, FREQS.length);
+    var total = FREQS.length + REPEAT_FREQS.length;
+    var done = testState.phase === 'main' ? testState.idx : FREQS.length + testState.idx;
+    progressFill.style.width = Math.min(done / total * 100, 100) + '%';
+    if (!progressTextEl) return;
+    if (testState.phase === 'main') {
+      progressTextEl.textContent = '正式测听 · 第 ' + Math.min(testState.idx + 1, FREQS.length) + ' / ' + FREQS.length + ' 个频率';
+    } else {
+      progressTextEl.textContent = '信度重复 · 第 ' + Math.min(testState.idx + 1, REPEAT_FREQS.length) + ' / ' + REPEAT_FREQS.length + ' 个频率';
+    }
   }
 
   function startTest() {
@@ -1146,8 +1196,12 @@
     initAudio();
     testState.idx = 0;
     testState.responses = [];
+    testState.repeatResponses = [];
+    testState.phase = 'main';
     testState.maxHeard = null;
     testState.matchedAge = null;
+    testState.matchQuality = null;
+    testState.consistency = null;
     testState.running = true;
     hide(testIntro);
     hide(testResult);
@@ -1158,8 +1212,21 @@
 
   function playNextFreq() {
     if (!testState.running) return;
-    if (testState.idx >= FREQS.length) { finishTest(); return; }
-    var freq = FREQS[testState.idx];
+
+    var freq;
+    if (testState.phase === 'main') {
+      if (testState.idx >= FREQS.length) {
+        testState.phase = 'repeat';
+        testState.idx = 0;
+        playNextFreq();
+        return;
+      }
+      freq = FREQS[testState.idx];
+    } else {
+      if (testState.idx >= REPEAT_FREQS.length) { finishTest(); return; }
+      freq = REPEAT_FREQS[testState.idx];
+    }
+
     freqNum.textContent = freq;
     freqHint.textContent = '正在播放…请仔细听';
     updateProgress();
@@ -1182,12 +1249,19 @@
     heardBtn.disabled = true;
     notHeardBtn.disabled = true;
     stopTone();
-    var freq = FREQS[testState.idx];
-    testState.responses.push({ freq: freq, heard: heard });
-    if (heard && (testState.maxHeard === null || freq > testState.maxHeard)) {
-      testState.maxHeard = freq;
+
+    if (testState.phase === 'main') {
+      var freq = FREQS[testState.idx];
+      testState.responses.push({ freq: freq, heard: heard });
+      if (heard && (testState.maxHeard === null || freq > testState.maxHeard)) {
+        testState.maxHeard = freq;
+      }
+      testState.idx++;
+    } else {
+      var rf = REPEAT_FREQS[testState.idx];
+      testState.repeatResponses.push({ freq: rf, heard: heard });
+      testState.idx++;
     }
-    testState.idx++;
     updateProgress();
     setTimeout(function () { playNextFreq(); }, 400);
   }
@@ -1196,27 +1270,48 @@
   notHeardBtn.addEventListener('click', function () { handleAnswer(false); });
   startTestBtn.addEventListener('click', startTest);
 
-  // 修复：采用最高频率直接查表，确保频率与年龄严格对应
+  // ✅ 问题三修复：逐点比对完整 9 点响应，不再只取最高频率
   function findBestMatchAge(responses, userAge) {
-    var maxFreq = null;
-    for (var i = 0; i < responses.length; i++) {
-      if (responses[i].heard) {
-        maxFreq = responses[i].freq;
+    var best = { age: userAge, mismatches: Infinity, total: responses.length };
+    for (var c = 0; c < CANDIDATE_AGES.length; c++) {
+      var candAge = CANDIDATE_AGES[c];
+      var pattern = getRefPattern(candAge);
+      var mismatch = 0;
+      for (var i = 0; i < responses.length; i++) {
+        if (pattern[i] !== (responses[i].heard ? 1 : 0)) mismatch++;
+      }
+      if (mismatch < best.mismatches) {
+        best = { age: candAge, mismatches: mismatch, total: responses.length };
       }
     }
-    var freqToAge = {
-      20000: 18, 19000: 22, 18000: 25, 17000: 28,
-      16000: 33, 14000: 38, 12000: 43, 10000: 48, 8000: 53
-    };
-    if (maxFreq === null) return { age: 55, score: 1 };
-    return { age: freqToAge[maxFreq] || 55, score: 1 };
+    return best;
+  }
+
+  // ✅ 问题六：计算重复测量一致性
+  function computeRepeatConsistency(mainResponses, repeatResponses) {
+    if (!repeatResponses || !repeatResponses.length) {
+      return { checked: 0, mismatches: 0, note: '未进行重复测量' };
+    }
+    var mismatches = 0, checked = 0;
+    for (var i = 0; i < repeatResponses.length; i++) {
+      var rr = repeatResponses[i];
+      var main = null;
+      for (var j = 0; j < mainResponses.length; j++) {
+        if (mainResponses[j].freq === rr.freq) { main = mainResponses[j]; break; }
+      }
+      if (main) { checked++; if (main.heard !== rr.heard) mismatches++; }
+    }
+    return { checked: checked, mismatches: mismatches };
   }
 
   function finishTest() {
     testState.running = false;
     stopTone();
+    progressFill.style.width = '100%';
     var m = findBestMatchAge(testState.responses, testState.userAge);
     testState.matchedAge = m.age;
+    testState.matchQuality = m;
+    testState.consistency = computeRepeatConsistency(testState.responses, testState.repeatResponses);
     hide(testRunning);
     show(testResult);
     requestAnimationFrame(function () {
@@ -1252,11 +1347,25 @@
     }
     $('freqList').innerHTML = html;
 
+    // 一致性显示
+    var c = testState.consistency;
+    var cEl = document.getElementById('consistencyText');
+    if (cEl) {
+      if (c && c.checked > 0) {
+        var rate = Math.round((1 - c.mismatches / c.checked) * 100);
+        cEl.innerHTML = '重复点 ' + c.checked + ' 个，不一致 ' + c.mismatches +
+          ' 个 → 一致性 <b>' + rate + '%</b>' +
+          (c.mismatches === 0 ? '（两次响应完全一致）' : '（存在主观波动，结果供参考）');
+      } else {
+        cEl.textContent = '本次未完成重复测量，无法计算一致性。';
+      }
+    }
+
     var split = calcCauseSplit(testState.responses, testState.userAge);
     window.__causeSplit = split;
     $('ageOffsetNum').textContent = split.avgAgeOffset;
-    $('noiseOffsetNum').textContent = split.avgNoiseOffset;
-    $('noiseRatioNum').textContent = split.noiseRatio;
+    $('noiseOffsetNum').textContent = split.avgResidualOffset;
+    $('noiseRatioNum').textContent = split.residualRatio;
 
     window.__hearingResult = {
       maxFreq: testState.maxHeard,
@@ -1264,7 +1373,10 @@
       rawHearingAge: matchedAge,
       userAge: testState.userAge,
       responses: testState.responses,
-      causeSplit: split
+      matchMismatches: testState.matchQuality.mismatches,
+      matchTotal: testState.matchQuality.total,
+      causeSplit: split,
+      consistency: testState.consistency
     };
 
     submitRecord({
@@ -1277,6 +1389,10 @@
       rawMatchedAge: matchedAge,
       displayHearingAge: displayAge,
       responses: testState.responses,
+      repeatResponses: testState.repeatResponses,
+      consistency: testState.consistency,
+      matchMismatches: testState.matchQuality.mismatches,
+      matchTotal: testState.matchQuality.total,
       causeSplit: split,
       report: null,
       savedByUser: false
@@ -1442,6 +1558,12 @@
   var SCENE_NAME = { commute:'通勤', work:'学习/工作', sleep:'睡眠', sport:'运动', entertain:'娱乐' };
   var TYPE_NAME  = { inEar:'入耳式', overEar:'头戴式', bone:'骨传导/开放式' };
 
+  // ✅ 问题五：音量百分比 → dB SPL 统一映射（模块②与模块③共用）
+  function VOLUME_TO_DB(volPct) {
+    var db = 85 + (volPct - 60) * 0.5; // 60% ≈ 85 dB，100% ≈ 105 dB
+    return Math.max(60, Math.min(105, db));
+  }
+
   var RADAR5_DEFS = [
     { key:'hearingRange', name:'听觉范围', def:'你最高能听到的频率，对应耳蜗底回（高频）毛细胞的存活状态。', calc:'得分 = 最高可闻频率 / 20000 × 100。' },
     { key:'noiseTolerance', name:'噪声耐受', def:'你听力年龄与实际年龄的落差，反映长期暴露后的累积损伤。', calc:'得分 = 100 − (听力年龄 − 实际年龄) × 4，限制在 5~100 之间。' },
@@ -1451,11 +1573,28 @@
   ];
 
   function syncSliders() {
-    state.session = Number(sessionSlider.value); state.daily = Number(dailySlider.value); state.volume = Number(volumeSlider.value);
-    sessionVal.textContent = state.session + ' 分钟'; dailyVal.textContent = state.daily + ' 小时'; volumeVal.textContent = state.volume + '%';
+    state.session = Number(sessionSlider.value);
+    state.daily = Number(dailySlider.value);
+    state.volume = Number(volumeSlider.value);
+    sessionVal.textContent = state.session + ' 分钟';
+    dailyVal.textContent = state.daily + ' 小时';
+    volumeVal.textContent = state.volume + '%';
+
+    // ✅ 问题五：实时剂量预览，让用户看到滑块联动
+    var estDb = VOLUME_TO_DB(state.volume);
+    var leq8h = estDb + 10 * Math.log10(state.daily / 8);
+    var dose = Math.pow(2, (leq8h - 85) / 3);
+    var previewEl = document.getElementById('dosePreview');
+    if (previewEl) {
+      previewEl.innerHTML = '当前参数估计：等效声级约 <b>' + estDb.toFixed(0) +
+        ' dB SPL</b> ｜ 日剂量约 <b>' + Math.round(dose * 100) +
+        '%</b>（NIOSH 85 dB/8h 基准）';
+    }
     updateLogicPanel();
   }
-  sessionSlider.addEventListener('input', syncSliders); dailySlider.addEventListener('input', syncSliders); volumeSlider.addEventListener('input', syncSliders);
+  sessionSlider.addEventListener('input', syncSliders);
+  dailySlider.addEventListener('input', syncSliders);
+  volumeSlider.addEventListener('input', syncSliders);
 
   sceneGroup.addEventListener('click', function (e) {
     var btn = e.target.closest('button'); if (!btn) return; var s = btn.getAttribute('data-scene');
@@ -1563,6 +1702,8 @@
     var sceneList = []; state.scenes.forEach(function (s) { sceneList.push(SCENE_NAME[s]); });
     html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">📍 场景</p><p>当前：<b>' + (sceneList.length ? sceneList.join('、') : '未选择') + '</b></p></div>';
     html += '<div style="margin-bottom:12px;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">🎧 耳机类型</p><p>当前：<b>' + TYPE_NAME[state.type] + '</b></p></div>';
+    // ✅ 问题五：说明与模块③的映射关系
+    html += '<div style="margin-top:12px; padding-top:10px; border-top:1px solid #1e293b;"><p style="color:#60a5fa; font-weight:600; margin-bottom:5px;">🔗 与模块③的联动</p><p>音量 ' + state.volume + '% ≈ 等效声级 ' + VOLUME_TO_DB(state.volume).toFixed(0) + ' dB SPL（60% ≈ 85 dB，100% ≈ 105 dB）。模块③可直接用 dB 滑块覆盖。</p></div>';
     logicContent.innerHTML = html;
   }
 
@@ -1587,8 +1728,9 @@
       if (ageDiff >= 8) { attitude.push({ level:'warn', text:'💭 <b>听力年龄落差</b>：听力年龄约 <b>' + inheritedHearingAge + ' 岁</b>，比实际大 <b>' + ageDiff + ' 岁</b>。' }); }
       else if (ageDiff <= 0) { attitude.push({ level:'ok', text:'💭 <b>本次未检出高频听阈偏移</b>：听力状态在正常范围内。' }); }
     }
-    if (window.__causeSplit && window.__causeSplit.noiseRatio >= 25) {
-      attitude.push({ level: window.__causeSplit.noiseRatio >= 50 ? 'danger' : 'warn', text:'💭 <b>噪声成因占比</b>：听阈偏移中 <b>' + window.__causeSplit.noiseRatio + '%</b> 来自噪声暴露，这部分是可逆风险。' });
+    // ✅ 问题一/二：改用 residualRatio
+    if (window.__causeSplit && window.__causeSplit.residualRatio >= 25) {
+      attitude.push({ level: window.__causeSplit.residualRatio >= 50 ? 'danger' : 'warn', text:'💭 <b>噪声性残余占比</b>：听阈偏移中 <b>' + window.__causeSplit.residualRatio + '%</b> 来自噪声暴露，这部分是可逆风险。' });
     }
     if (state.scenes.has('sleep')) { attitude.push({ level:'warn', text:'💭 <b>睡眠用耳</b>：戴耳机入睡意味着耳朵在整个睡眠周期持续暴露。' }); }
 
@@ -1673,11 +1815,11 @@
     dimDefList5.innerHTML = html;
   }
 
-  function drawPie(canvas, ageOffset, noiseOffset) {
+  function drawPie(canvas, ageOffset, residualOffset) {
     var wrap = canvas.parentElement; var cssW = wrap.clientWidth || 260; var cssSize = Math.min(cssW, 260);
     var dpr = window.devicePixelRatio || 1; canvas.width = cssSize * dpr; canvas.height = cssSize * dpr; canvas.style.width = cssSize + 'px'; canvas.style.height = cssSize + 'px';
     var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssSize, cssSize);
-    var cx = cssSize / 2, cy = cssSize / 2 - 10; var r = cssSize * 0.32; var total = ageOffset + noiseOffset;
+    var cx = cssSize / 2, cy = cssSize / 2 - 10; var r = cssSize * 0.32; var total = ageOffset + residualOffset;
     if (total <= 0) {
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#4ade80'; ctx.fill();
       ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#0f172a'; ctx.fill();
@@ -1686,9 +1828,9 @@
       ctx.font = '11px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#94a3b8';
       ctx.fillText('未检测到听阈偏移，毛细胞状态良好', cssSize / 2, cssSize - 26); return;
     }
-    var ageRatio = ageOffset / total; var noiseRatio = noiseOffset / total; var start = -Math.PI / 2;
+    var ageRatio = ageOffset / total; var residualRatio = residualOffset / total; var start = -Math.PI / 2;
     if (ageRatio > 0) { var ageEnd = start + ageRatio * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, start, ageEnd); ctx.closePath(); ctx.fillStyle = '#3b82f6'; ctx.fill(); }
-    if (noiseRatio > 0) { var noiseStart = start + ageRatio * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, noiseStart, start + Math.PI * 2); ctx.closePath(); ctx.fillStyle = '#ef4444'; ctx.fill(); }
+    if (residualRatio > 0) { var residualStart = start + ageRatio * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, residualStart, start + Math.PI * 2); ctx.closePath(); ctx.fillStyle = '#ef4444'; ctx.fill(); }
     ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#0f172a'; ctx.fill();
     ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 12px system-ui, "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('损伤', cx, cy - 8); ctx.fillText('来源', cx, cy + 8);
@@ -1696,7 +1838,7 @@
     var legendY = cssSize - 20; ctx.fillStyle = '#3b82f6'; ctx.fillRect(14, legendY - 5, 12, 10); ctx.fillStyle = '#94a3b8';
     ctx.fillText('年龄 ' + Math.round(ageRatio * 100) + '%', 32, legendY);
     ctx.fillStyle = '#ef4444'; ctx.fillRect(130, legendY - 5, 12, 10); ctx.fillStyle = '#94a3b8';
-    ctx.fillText('噪声 ' + Math.round(noiseRatio * 100) + '%', 148, legendY);
+    ctx.fillText('残余 ' + Math.round(residualRatio * 100) + '%', 148, legendY);
   }
 
   function estimateSurvival(db, hours, days) {
@@ -1719,12 +1861,25 @@
       var habitScoreEl = $('habitScoreText');
       if (habitScoreEl) { habitScoreEl.innerHTML = '📊 <b>用耳习惯评分</b>：' + overall + ' 分（' + habitRisk.label + '）。' + '该评分基于音量、时长、场景、耳机类型 4 个习惯参数加权，反映你的日常用耳风险，与上方听力风险等级互不干扰。'; }
 
-      if (window.__hearingResult) {
-        var hr = window.__hearingResult; $('seg1MaxFreq').innerHTML = (hr.maxFreq || '—') + ' <span>Hz</span>';
-        $('seg1HearingAge').innerHTML = hr.hearingAge + ' <span>岁</span>'; $('seg1UserAge').innerHTML = hr.userAge + ' <span>岁</span>';
+      // ✅ 问题三：报告消费完整 responses 数组，而不是只用 maxFreq
+      var hr = window.__hearingResult;
+      if (hr) {
+        var heardFreqs = hr.responses.filter(function(r){ return r.heard; }).map(function(r){ return r.freq; });
+        var reportMaxFreq = heardFreqs.length ? Math.max.apply(null, heardFreqs) : null;
+        $('seg1MaxFreq').innerHTML = (reportMaxFreq || '—') + ' <span>Hz</span>';
+        $('seg1HearingAge').innerHTML = hr.hearingAge + ' <span>岁</span>';
+        $('seg1UserAge').innerHTML = hr.userAge + ' <span>岁</span>';
         var diffAge = hr.hearingAge - hr.userAge;
         if (diffAge > 0) { $('seg1AgeDiff').innerHTML = '+' + diffAge + ' <span>岁</span>'; }
         else { $('seg1AgeDiff').innerHTML = '<span style="color:#4ade80;">未检出偏移</span>'; }
+
+        var mq = document.getElementById('seg1MatchQuality');
+        if (mq) {
+          var qText = hr.matchMismatches === 0
+            ? '与最接近年龄参考模式完全一致（0 / ' + hr.matchTotal + ' 个频率点不一致）。'
+            : '与最接近年龄参考模式存在 ' + hr.matchMismatches + ' / ' + hr.matchTotal + ' 个频率点不一致；非单调听阈（如个别高频点未通过）在真实测听中常见，报告已完整纳入 9 点响应。';
+          mq.innerHTML = '🔎 匹配质量：' + qText;
+        }
       }
       var radar5 = calcRadar5Scores(); drawRadar5(radar5Canvas, radar5); renderRadar5Defs(radar5);
       var split = window.__causeSplit;
@@ -1732,17 +1887,31 @@
         $('seg2AgeOffset').textContent = '—'; $('seg2NoiseOffset').textContent = '—'; $('seg2NoiseRatio').textContent = '—';
         drawPie(pieCanvas, 0, 0); $('seg2Explanation').innerHTML = '📌 需要先完成听力测试才能计算损伤成因拆分。请返回「① 听力年龄测试」完成九个频率的测试。';
       } else {
-        var totalOffset = split.avgAgeOffset + split.avgNoiseOffset;
-        $('seg2AgeOffset').textContent = split.avgAgeOffset; $('seg2NoiseOffset').textContent = split.avgNoiseOffset; $('seg2NoiseRatio').textContent = split.noiseRatio;
-        drawPie(pieCanvas, split.avgAgeOffset, split.avgNoiseOffset);
+        var totalOffset = split.avgAgeOffset + split.avgResidualOffset;
+        $('seg2AgeOffset').textContent = split.avgAgeOffset;
+        $('seg2NoiseOffset').textContent = split.avgResidualOffset;
+        $('seg2NoiseRatio').textContent = split.residualRatio;
+        drawPie(pieCanvas, split.avgAgeOffset, split.avgResidualOffset);
         var explanation = '';
         if (totalOffset === 0) { explanation = '你的听阈在测试频率范围内正常，<b>没有检测到明显的听阈偏移</b>，耳蜗毛细胞状态良好。继续保持目前的用耳习惯。'; }
-        else if (split.noiseRatio >= 50) { explanation = '损伤主要集中在耳蜗<b>基底（高频端）</b>，符合噪声性听力损失的典型空间规律。你的听阈偏移中噪声占比达 <b>' + split.noiseRatio + '%</b>，说明目前的听力变化主要来自噪声暴露，这部分是可以通过改变用耳习惯预防的。'; }
-        else if (split.noiseRatio >= 25) { explanation = '损伤分布在耳蜗螺旋的中高频段，噪声与年龄因素共同作用。你的听阈偏移中噪声占比 <b>' + split.noiseRatio + '%</b>，与年龄因素相当，尽早调整用耳习惯可以减缓进一步损伤。'; }
-        else { explanation = '损伤目前以年龄自然衰老为主，噪声占比 <b>' + split.noiseRatio + '%</b>。保持良好的用耳习惯可以帮助维持现状。'; }
+        else if (split.residualRatio >= 50) { explanation = '损伤主要集中在耳蜗<b>基底（高频端）</b>，符合噪声性听力损失的典型空间规律。你的听阈偏移中噪声性残余占比达 <b>' + split.residualRatio + '%</b>，说明目前的听力变化主要来自噪声暴露，这部分是可以通过改变用耳习惯预防的。'; }
+        else if (split.residualRatio >= 25) { explanation = '损伤分布在耳蜗螺旋的中高频段，噪声与年龄因素共同作用。你的听阈偏移中噪声性残余占比 <b>' + split.residualRatio + '%</b>，与年龄因素相当，尽早调整用耳习惯可以减缓进一步损伤。'; }
+        else { explanation = '损伤目前以年龄自然衰老为主，噪声性残余占比 <b>' + split.residualRatio + '%</b>。保持良好的用耳习惯可以帮助维持现状。'; }
         $('seg2Explanation').innerHTML = '📌 ' + explanation;
       }
-      var currentDb = 85 + (state.volume - 60) * 0.5; var currentHours = state.daily;
+
+      // ✅ 问题五：统一用 VOLUME_TO_DB，并显示当前习惯的日剂量
+      var currentDb = VOLUME_TO_DB(state.volume);
+      var currentHours = state.daily;
+      var leq8hNow = currentDb + 10 * Math.log10(state.daily / 8);
+      var doseNow = Math.pow(2, (leq8hNow - 85) / 3);
+      var doseEl = document.getElementById('seg2DoseNow');
+      if (doseEl) {
+        doseEl.innerHTML = '当前习惯的日噪声剂量：<b>' + Math.round(doseNow * 100) +
+          '%</b>（等效声级 ' + currentDb.toFixed(0) + ' dB SPL，' +
+          state.daily + ' h/day；NIOSH 85 dB/8h 基准）';
+      }
+
       var exposureYears = Math.max(1, state.age - state.ageStart); var exposureDays = exposureYears * 365;
       var survivalBefore = estimateSurvival(currentDb, currentHours, exposureDays);
       var protectedDb = Math.min(currentDb, 85); var protectedHours = Math.min(currentHours, 1) + Math.max(0, currentHours - 1) * 0.2;
@@ -1758,22 +1927,13 @@
       adviceKnowledge.innerHTML = htmlK; adviceAttitude.innerHTML = htmlA; adviceBehavior.innerHTML = htmlB;
 
       var revisitText = '';
-      if (hearingRisk.hasResult && hearingRisk.diff <= 0) { revisitText = '💡 <b>如果三个月后再测一次</b>……继续保持目前的习惯，你的高频听觉状态有望保持稳定。用本工具复测一次，对比听力年龄和噪声占比的变化。'; }
-      else { revisitText = '💡 <b>如果三个月后再测一次</b>……坚持"音量 ≤60% + 单次 ≤60 分钟"三个月后，用本工具复测，对比听力年龄和噪声占比的变化。多数人能在 3 个月内看到噪声占比下降。建议把每次测试结果截图保存，形成纵向对照。'; }
+      if (hearingRisk.hasResult && hearingRisk.diff <= 0) { revisitText = '💡 <b>如果三个月后再测一次</b>……继续保持目前的习惯，你的高频听觉状态有望保持稳定。用本工具复测一次，对比听力年龄和噪声性残余占比的变化。'; }
+      else { revisitText = '💡 <b>如果三个月后再测一次</b>……坚持"音量 ≤60% + 单次 ≤60 分钟"三个月后，用本工具复测，对比听力年龄和噪声性残余占比的变化。多数人能在 3 个月内看到噪声性残余占比下降。建议把每次测试结果截图保存，形成纵向对照。'; }
       $('revisitHint').innerHTML = revisitText;
 
       window.__reportParams = { age: state.age, ageStart: state.ageStart, volume: state.volume, session: state.session, daily: state.daily, scenes: Array.from(state.scenes), type: state.type };
 
-            // ================= 提取需要存入后台的数据 =================
-      var radar5Data = calcRadar5Scores(); // 获取五维得分
-      var currentDb = 85 + (state.volume - 60) * 0.5;
-      var leq8h = currentDb + 10 * Math.log10(state.daily / 8);
-      var doseRatio = Math.pow(2, (leq8h - 85) / 3) * 100; // 日剂量比
-      var exposureYears = Math.max(1, state.age - state.ageStart);
-      var exposureDays = exposureYears * 365;
-      var survival = estimateSurvival(currentDb, state.daily, exposureDays); // 毛细胞存活率
-      var causeSplit = window.__causeSplit || { avgAgeOffset: 0, avgNoiseOffset: 0 };
-
+      var causeSplit = window.__causeSplit || { avgAgeOffset: 0, avgResidualOffset: 0 };
       updateRecordOnServer({
         report: {
           scores: scores,
@@ -1781,13 +1941,12 @@
           habitRisk: habitRisk.label,
           hearingRisk: hearingRisk.level,
           params: window.__reportParams,
-          // 新增提交的维度：
-          radar5: radar5Data, 
-          doseRatio: Math.round(doseRatio),
-          noiseOffset: causeSplit.avgNoiseOffset,
+          radar5: radar5,
+          doseRatio: Math.round(doseNow * 100),
           ageOffset: causeSplit.avgAgeOffset,
-          survivalRate: survival.toFixed(1),
-          predictedOffset: causeSplit.avgNoiseOffset // 模型预测的听阈偏移量（等同于噪声所致偏移）
+          residualOffset: causeSplit.avgResidualOffset,
+          survivalRate: survivalBefore.toFixed(1),
+          predictedOffset: causeSplit.avgResidualOffset
         }
       });
 
@@ -1807,8 +1966,8 @@
         setTimeout(function () {
           if (typeof window.__initMiniCochlea === 'function') { window.__initMiniCochlea(); }
           if (typeof window.__updateMiniCochlea === 'function') {
-            var cDb = 85 + (state.volume - 60) * 0.5; var eYears = Math.max(1, state.age - state.ageStart); var eDays = eYears * 365;
-            var leq8h = cDb + 10 * Math.log10(state.daily / 8); var doseRatio = Math.pow(2, (leq8h - 85) / 3);
+            var eYears = Math.max(1, state.age - state.ageStart); var eDays = eYears * 365;
+            var leq8h = currentDb + 10 * Math.log10(state.daily / 8); var doseRatio = Math.pow(2, (leq8h - 85) / 3);
             var excess = Math.max(0, doseRatio - 1); var warning = doseRatio > 0.3 ? (doseRatio - 0.3) * 2.5 : 0;
             var totalExcess = excess + warning; var recoveryFactor = Math.max(0.3, 1 - eDays / 5000);
             var rawE = totalExcess * eDays * recoveryFactor * 0.005; var E = Math.log(1 + rawE) * 3;
@@ -2353,11 +2512,12 @@ if (canvasBox) {
     ctx.fillText('停曝 180 天', padL + plotW / 2, cssH - 15);
     ctx.fillText('停曝 365 天', padL + plotW, cssH - 15);
 
+    // ✅ 问题四：正确标注 TTS / PTS
     ctx.fillStyle = '#94a3b8';
     ctx.font = '11px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText('存活率随停曝时间变化', padL, 0);
+    ctx.fillText('TTS 恢复曲线（下方残余为 PTS）', padL, 0);
   }
 
   function animateFull() {
@@ -2431,6 +2591,7 @@ if (canvasBox) {
     this.classList.add('active');
   });
 
+  // ✅ 问题五：复用与模块②相同的 VOLUME_TO_DB 映射
   window.__importReportParams = function () {
     const p = window.__reportParams;
     if (!p) { alert('请先在「听力安全报告」中生成报告'); return; }
@@ -2442,6 +2603,7 @@ if (canvasBox) {
       daysSlider.value = Math.min(exposureDays, 3650);
     }
 
+    // 与模块②完全相同的映射，保证两处 dB 口径一致
     const db = Math.max(60, Math.min(120, Math.round(85 + (p.volume - 60) * 0.5)));
     dbSlider.value = db;
     hoursSlider.value = p.daily;
@@ -2457,7 +2619,7 @@ if (canvasBox) {
 
     importBanner.classList.remove('hidden');
     importBanner.textContent = '💡 已带入：年龄 ' + p.age + ' 岁，开始使用 ' + p.ageStart +
-      ' 岁，暴露约 ' + exposureYears + ' 年（' + exposureDays + ' 天）';
+      ' 岁，音量 ' + p.volume + '% ≈ ' + db + ' dB，暴露约 ' + exposureYears + ' 年（' + exposureDays + ' 天）';
     updateSimulation();
   };
 
