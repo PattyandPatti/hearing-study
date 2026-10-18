@@ -270,6 +270,7 @@
   .pretest-hint { font-size:12px; color:#94a3b8; line-height:1.7; margin-bottom:16px;
                   padding:12px 14px; background:#0f172a; border-radius:10px; border-left:3px solid #3b82f6; }
   .pretest-hint b { color:#60a5fa; }
+  .pretest-hint.warn { border-left-color:#fbbf24; background:#3b1f1f; color:#fed7aa; }
 
   .welcome-card { text-align:center; padding:36px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid #334155; }
   .welcome-icon { font-size:56px; margin-bottom:12px; }
@@ -328,6 +329,21 @@
   @media (max-width: 480px) {
     .global-disclaimer { font-size: 11px; padding: 8px 12px; line-height: 1.5; }
   }
+
+  /* 前测确认弹框输入框 */
+  #pretestSubmitCode {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 2px solid #475569;
+    background: #0f172a;
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+  }
+  #pretestSubmitCode:focus { border-color: #60a5fa; }
 </style>
 </head>
 <body>
@@ -389,6 +405,9 @@
       如果提交后没有自动跳转，请点击页面下方的<b style="color:#4ade80;">「✓ 我已完成前测，进入互动模型」</b>按钮继续。
     </p>
     <div class="pretest-hint">💡 <b>关于研究编码：</b>问卷中需要填写您的研究编码 <b id="pretestCodeDisplay">—</b>。<br>请确认您已记住或截图保存该编码，后续「后测问卷」「30 天随访问卷」都需要它。</div>
+    <div class="pretest-hint warn">
+      🔒 <b>必须填完前测才能进入互动模型。</b>点击下方按钮前，请在问卷星页面点击「提交」并等待「提交成功」提示。系统会二次确认并记录您的确认方式；未真实提交的数据将被视为无效。
+    </div>
     <div id="pretestContainer"></div>
     <button class="btn success" id="pretestDoneBtn" type="button" style="width:100%; font-size:16px; padding:16px; margin-top:12px;">✓ 我已完成前测，进入互动模型 →</button>
     <p style="font-size:11px; color:#64748b; margin-top:14px; line-height:1.7;">⚠️ 如果问卷加载缓慢或无法显示，请检查网络连接，或联系研究者获取问卷链接。</p>
@@ -842,9 +861,44 @@
   </div>
 </div>
 
-<!-- 固定黄色免责提示条（进入主应用后显示） -->
+<!-- 固定黄色免责提示条 -->
 <div class="global-disclaimer" id="globalDisclaimer">
   ⚠️ 结果受播放设备与耳机频响影响，仅作健康提示科普，<b>不能作为医学诊断</b>
+</div>
+
+<!-- 前测完成确认弹框 -->
+<div class="modal-overlay hidden" id="pretestSubmitModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📝 确认已完成前测</h2>
+      <button class="close-btn" id="closePretestSubmit" type="button">关闭</button>
+    </div>
+    <p style="font-size:13px; color:#cbd5e1; line-height:1.9; margin-bottom:14px;">
+      请确认您<b style="color:#fbbf24;">已在问卷星页面点击「提交」按钮</b>，并看到「提交成功」提示。<br>
+      未提交就进入互动模型，本次前测数据将无法与研究记录配对。
+    </p>
+    <p style="font-size:13px; color:#cbd5e1; margin-bottom:8px;">
+      请在下方输入框中准确填写 <b style="color:#4ade80;">「已完成」</b> 三个字，以确认已真实提交：
+    </p>
+    <input type="text" id="pretestSubmitCode" maxlength="10" placeholder="请输入「已完成」三个字">
+    <label style="display:flex; align-items:flex-start; gap:10px; margin-top:16px; font-size:13px;
+                  color:#cbd5e1; line-height:1.7; cursor:pointer;">
+      <input type="checkbox" id="pretestConfirmCheckbox"
+             style="margin-top:3px; width:18px; height:18px; cursor:pointer; flex-shrink:0;">
+      <span>我确认已在问卷星页面点击「提交」按钮，并看到「提交成功」提示。</span>
+    </label>
+    <button class="btn success" id="pretestSubmitConfirmBtn" type="button" disabled
+            style="width:100%; margin-top:16px;">
+      确认并进入互动模型 →
+    </button>
+    <button class="btn secondary" id="pretestBackToFormBtn" type="button"
+            style="width:100%; margin-top:10px;">
+      ↩ 返回前测问卷重新填写
+    </button>
+    <p style="font-size:11px; color:#fbbf24; margin-top:12px; line-height:1.7; text-align:center;">
+      ⚠️ 后台会记录您的确认方式。如发现未真实提交，本次数据可能被视为无效。
+    </p>
+  </div>
 </div>
 
 <div class="modal-overlay hidden" id="aboutModal">
@@ -944,6 +998,7 @@
   var SAVED_KEY = 'hearing_data_saved';
   var PRETEST_KEY = 'hearing_pretest_completed';
   var LOCAL_CODES_KEY = 'hearing_used_codes';
+  var PRETEST_SUBMIT_CODE_KEY = 'hearing_pretest_submit_code';
   var researchCode = null;
 
   function getSavedCode() { try { return localStorage.getItem(CODE_KEY); } catch (e) { return null; } }
@@ -952,6 +1007,7 @@
   function markSaved() { try { localStorage.setItem(SAVED_KEY, 'true'); } catch (e) {} }
   function isPretestDone() { try { return localStorage.getItem(PRETEST_KEY) === 'true'; } catch (e) { return false; } }
   function markPretestDone() { try { localStorage.setItem(PRETEST_KEY, 'true'); } catch (e) {} }
+  function clearPretestDone() { try { localStorage.removeItem(PRETEST_KEY); } catch (e) {} }
 
   function generateLocalCode() {
     var used = [];
@@ -1104,6 +1160,12 @@
   var currentRecord = null;
 
   function submitRecord(record) {
+    if (record && record.pretestCompleted) {
+      try {
+        var pc = localStorage.getItem(PRETEST_SUBMIT_CODE_KEY);
+        if (pc) record.pretestSubmitCode = pc;
+      } catch (e) {}
+    }
     currentRecord = record;
     fetch(API_BASE + '/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) })
     .then(function (r) { return r.json(); })
@@ -2192,7 +2254,9 @@
     try {
       var urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('pretest') === 'done' || window.location.hash === '#pretest-done') {
-        markPretestDone(); pretestFromURL = true;
+        markPretestDone();
+        try { localStorage.setItem(PRETEST_SUBMIT_CODE_KEY, 'url_redirect_confirmed'); } catch (e) {}
+        pretestFromURL = true;
         if (window.history && window.history.replaceState) { window.history.replaceState({}, '', window.location.pathname); }
       }
     } catch (e) {}
@@ -2241,10 +2305,81 @@
       });
     }
 
+    // 前测完成按钮 → 二次确认
     var pretestDoneBtn = document.getElementById('pretestDoneBtn');
     if (pretestDoneBtn) {
-      pretestDoneBtn.addEventListener('click', function () { markPretestDone(); showMainApp(researchCode); });
+      pretestDoneBtn.addEventListener('click', function () {
+        if (pretestFromURL === true) {
+          markPretestDone();
+          try { localStorage.setItem(PRETEST_SUBMIT_CODE_KEY, 'url_redirect_confirmed'); } catch (e) {}
+          showMainApp(researchCode);
+          return;
+        }
+        var modal = document.getElementById('pretestSubmitModal');
+        var codeInput = document.getElementById('pretestSubmitCode');
+        var checkbox = document.getElementById('pretestConfirmCheckbox');
+        var confirmBtn = document.getElementById('pretestSubmitConfirmBtn');
+        if (modal) modal.classList.remove('hidden');
+        if (codeInput) codeInput.value = '';
+        if (checkbox) checkbox.checked = false;
+        if (confirmBtn) confirmBtn.disabled = true;
+        setTimeout(function () { if (codeInput) codeInput.focus(); }, 100);
+      });
     }
+
+    // 二次确认框：输入校验（必须输入「已完成」三字 + 打勾）
+    (function () {
+      var codeInput = document.getElementById('pretestSubmitCode');
+      var checkbox = document.getElementById('pretestConfirmCheckbox');
+      var confirmBtn = document.getElementById('pretestSubmitConfirmBtn');
+      if (!codeInput || !checkbox || !confirmBtn) return;
+      function validate() {
+        var val = codeInput.value.trim();
+        confirmBtn.disabled = !(val === '已完成' && checkbox.checked);
+      }
+      codeInput.addEventListener('input', validate);
+      checkbox.addEventListener('change', validate);
+    })();
+
+    // 二次确认框：确认进入（必须输入「已完成」）
+    (function () {
+      var btn = document.getElementById('pretestSubmitConfirmBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var codeInput = document.getElementById('pretestSubmitCode');
+        var code = codeInput ? codeInput.value.trim() : '';
+        if (code !== '已完成') { alert('请准确输入「已完成」三个字'); return; }
+        try { localStorage.setItem(PRETEST_SUBMIT_CODE_KEY, '已完成'); } catch (e) {}
+        markPretestDone();
+        var modal = document.getElementById('pretestSubmitModal');
+        if (modal) modal.classList.add('hidden');
+        if (currentRecord) updateRecordOnServer({ pretestSubmitCode: '已完成' });
+        showMainApp(researchCode);
+      });
+    })();
+
+    // 二次确认框：关闭
+    (function () {
+      var closeBtn = document.getElementById('closePretestSubmit');
+      var modal = document.getElementById('pretestSubmitModal');
+      if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function () { modal.classList.add('hidden'); });
+        modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.add('hidden'); });
+      }
+    })();
+
+    // 二次确认框：返回前测问卷重新填写
+    (function () {
+      var backBtn = document.getElementById('pretestBackToFormBtn');
+      if (!backBtn) return;
+      backBtn.addEventListener('click', function () {
+        var modal = document.getElementById('pretestSubmitModal');
+        if (modal) modal.classList.add('hidden');
+        clearPretestDone();
+        var code = researchCode || getSavedCode() || '';
+        showPretestGate(code);
+      });
+    })();
   }
 
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initGates); }
