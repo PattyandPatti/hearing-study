@@ -8,7 +8,7 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
          background:#0b1120; color:#e2e8f0; min-height:100vh; }
-  .app { max-width:900px; margin:0 auto; padding:0 16px 60px; }
+  .app { max-width:900px; margin:0 auto; padding:0 16px 76px; }
   #videoWrap { width:100%; margin:16px 0; border-radius:12px; overflow:hidden; background:#000; }
   #videoWrap video { width:100%; display:block; }
   #videoWrap.hidden { display:none; }
@@ -305,6 +305,29 @@
   .save-tip { font-size:13px; margin-top:14px; color:#4ade80; display:none; }
   .save-tip.show { display:block; }
   .hidden { display:none !important; }
+
+  /* 固定黄色免责提示条 */
+  .global-disclaimer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 90;
+    display: none;
+    background: rgba(15, 23, 42, 0.96);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-top: 2px solid #fbbf24;
+    color: #fcd34d;
+    font-size: 12px;
+    line-height: 1.55;
+    padding: 9px 16px;
+    text-align: center;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+  }
+  .global-disclaimer.show { display: block; }
+  .global-disclaimer b { color: #fef08a; font-weight: 700; }
+  @media (max-width: 480px) {
+    .global-disclaimer { font-size: 11px; padding: 8px 12px; line-height: 1.5; }
+  }
 </style>
 </head>
 <body>
@@ -819,6 +842,11 @@
   </div>
 </div>
 
+<!-- 固定黄色免责提示条（进入主应用后显示） -->
+<div class="global-disclaimer" id="globalDisclaimer">
+  ⚠️ 结果受播放设备与耳机频响影响，仅作健康提示科普，<b>不能作为医学诊断</b>
+</div>
+
 <div class="modal-overlay hidden" id="aboutModal">
   <div class="modal">
     <h2>关于本模型</h2>
@@ -964,6 +992,8 @@
     ['welcomeGate', 'codeGate', 'pretestGate', 'mainApp'].forEach(function (id) {
       var el = document.getElementById(id); if (el) el.style.display = 'none';
     });
+    var gd = document.getElementById('globalDisclaimer');
+    if (gd) gd.classList.remove('show');
   }
 
   function showPretestGate(code) {
@@ -986,6 +1016,8 @@
     if (fc) fc.textContent = code;
     var pc = document.getElementById('postTestCode');
     if (pc) pc.textContent = code;
+    var gd = document.getElementById('globalDisclaimer');
+    if (gd) gd.classList.add('show');
     window.scrollTo({ top: 0 });
 
     if (isSaved()) {
@@ -1164,7 +1196,6 @@
   var REPEAT_FREQS = [16000, 10000];
   var FREQ_LABELS = ['8k', '10k', '12k', '14k', '16k', '17k', '18k', '19k', '20k'];
 
-  // ✅ 连续插值：频率与年龄的映射遵循 AGE_MAXFREQ_POINTS 折线
   var AGE_MAXFREQ_POINTS = [
     [18, 20000], [20, 19700], [22, 19300], [24, 18900], [25, 18700],
     [26, 18500], [28, 18000], [30, 17500], [33, 16500], [36, 15200],
@@ -1386,7 +1417,6 @@
     show(testIntro);
   });
 
-  // ✅ 匹配点数最多者胜出；平局时选离实际年龄最近者
   function findBestMatchAge(responses, userAge) {
     var userPattern = responses.map(function (r) { return r.heard ? 1 : 0; });
     var bestAge = userAge, bestScore = -1, bestDist = Infinity;
